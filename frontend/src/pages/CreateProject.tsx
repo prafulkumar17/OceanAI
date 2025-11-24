@@ -1,28 +1,26 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FileText, MonitorPlay, ArrowRight, Loader, AlertTriangle, Sparkles } from 'lucide-react'
 import { projectApi } from '../services/api'
-import { FileText, Presentation, ArrowLeft, Sparkles, Zap } from 'lucide-react'
-
-type DocumentType = 'docx' | 'pptx'
 
 export default function CreateProject() {
+  const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [topic, setTopic] = useState('')
-  const [documentType, setDocumentType] = useState<DocumentType>('docx')
+  const [documentType, setDocumentType] = useState<'docx' | 'pptx'>('docx')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const navigate = useNavigate()
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError(null)
+    setError('')
 
     try {
       const project = await projectApi.createProject({
         title,
         topic,
-        document_type: documentType
+        document_type: documentType,
       })
       navigate(`/projects/${project.id}`)
     } catch (err: any) {
@@ -33,144 +31,128 @@ export default function CreateProject() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto animate-fadeIn">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate('/projects')}
-        className="flex items-center text-slate-400 hover:text-white mb-6 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Projects
-      </button>
+    <div className="max-w-4xl mx-auto">
+      <div className="bento-card p-8 md:p-12 relative overflow-hidden">
+        {/* Decorative Header */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ffff] opacity-5 blur-[80px] rounded-full pointer-events-none"></div>
 
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center mb-4">
-          <Sparkles className="h-10 w-10 text-blue-400 animate-pulse-glow" />
-        </div>
-        <h2 className="text-4xl font-bold gradient-text mb-3">
-          Create New Project
-        </h2>
-        <p className="text-slate-400">
-          Let AI generate amazing content for you
-        </p>
-      </div>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="glass-card p-8 space-y-6">
-        {/* Project Title */}
-        <div className="animate-slideUp">
-          <label className="block text-sm font-semibold text-blue-200 mb-3">
-            Project Title
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-            placeholder="e.g., Marketing Strategy 2024"
-          />
-        </div>
-
-        {/* Description */}
-        <div className="animate-slideUp" style={{ animationDelay: '0.1s' }}>
-          <label className="block text-sm font-semibold text-blue-200 mb-3">
-            Description / Topic
-          </label>
-          <textarea
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            required
-            rows={5}
-            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 resize-none"
-            placeholder="Describe what you want the document to be about... Be as detailed as possible for better results!"
-          />
-        </div>
-
-        {/* Document Type */}
-        <div className="animate-slideUp" style={{ animationDelay: '0.2s' }}>
-          <label className="block text-sm font-semibold text-blue-200 mb-4">
-            Document Type
-          </label>
-          <div className="grid grid-cols-2 gap-4">
-            {/* Word Document */}
-            <button
-              type="button"
-              onClick={() => setDocumentType('docx')}
-              className={`group relative p-6 rounded-xl transition-all duration-300 ${documentType === 'docx'
-                  ? 'bg-gradient-to-br from-blue-600/20 to-blue-500/10 border-2 border-blue-500 shadow-lg shadow-blue-500/20'
-                  : 'bg-slate-800/30 border-2 border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/50'
-                }`}
-            >
-              <div className={`absolute top-3 right-3 w-3 h-3 rounded-full transition-all ${documentType === 'docx' ? 'bg-blue-400 animate-pulse-glow' : 'bg-slate-600'
-                }`}></div>
-              <FileText className={`h-12 w-12 mx-auto mb-3 transition-colors ${documentType === 'docx' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'
-                }`} />
-              <div className={`font-bold text-lg mb-1 ${documentType === 'docx' ? 'text-white' : 'text-slate-300'
-                }`}>
-                Word Document
-              </div>
-              <div className="text-sm text-slate-400">
-                3-5 detailed sections
-              </div>
-            </button>
-
-            {/* PowerPoint */}
-            <button
-              type="button"
-              onClick={() => setDocumentType('pptx')}
-              className={`group relative p-6 rounded-xl transition-all duration-300 ${documentType === 'pptx'
-                  ? 'bg-gradient-to-br from-purple-600/20 to-purple-500/10 border-2 border-purple-500 shadow-lg shadow-purple-500/20'
-                  : 'bg-slate-800/30 border-2 border-slate-700 hover:border-purple-500/50 hover:bg-slate-800/50'
-                }`}
-            >
-              <div className={`absolute top-3 right-3 w-3 h-3 rounded-full transition-all ${documentType === 'pptx' ? 'bg-purple-400 animate-pulse-glow' : 'bg-slate-600'
-                }`}></div>
-              <Presentation className={`h-12 w-12 mx-auto mb-3 transition-colors ${documentType === 'pptx' ? 'text-purple-400' : 'text-slate-500 group-hover:text-purple-400'
-                }`} />
-              <div className={`font-bold text-lg mb-1 ${documentType === 'pptx' ? 'text-white' : 'text-slate-300'
-                }`}>
-                PowerPoint
-              </div>
-              <div className="text-sm text-slate-400">
-                5 professional slides
-              </div>
-            </button>
+        <div className="mb-10 text-center relative z-10">
+          <div className="inline-flex items-center px-3 py-1 rounded-full border border-[#00ffff]/30 bg-[#00ffff]/10 text-[#00ffff] text-xs font-bold mb-4">
+            <Sparkles className="w-3 h-3 mr-2" />
+            NEW ARTIFACT
           </div>
+          <h1 className="text-4xl font-bold mb-2">
+            Initiate <span className="text-gradient-cyan">Protocol</span>
+          </h1>
+          <p className="text-gray-400">
+            Define parameters for your new document generation.
+          </p>
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 backdrop-blur-sm animate-slideUp">
-            <p className="text-sm text-red-300">{error}</p>
+          <div className="mb-8 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center">
+            <AlertTriangle className="h-5 w-5 mr-3" />
+            {error}
           </div>
         )}
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full gradient-button text-white py-4 px-6 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 mt-8"
-        >
-          {loading ? (
-            <>
-              <div className="spinner h-5 w-5"></div>
-              <span>Creating Project...</span>
-            </>
-          ) : (
-            <>
-              <Zap className="h-5 w-5" />
-              <span>Create Project</span>
-            </>
-          )}
-        </button>
+        <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Title Input */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-400 uppercase tracking-wider">
+                Project Title
+              </label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#00ffff]/50 focus:ring-1 focus:ring-[#00ffff]/50 transition-all"
+                placeholder="Enter title..."
+              />
+            </div>
 
-        {/* Info Text */}
-        <p className="text-center text-xs text-slate-500 mt-4">
-          Your document will be generated using advanced AI technology
-        </p>
-      </form>
+            {/* Topic Input */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-400 uppercase tracking-wider">
+                Description
+              </label>
+              <input
+                type="text"
+                required
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#ccff00]/50 focus:ring-1 focus:ring-[#ccff00]/50 transition-all"
+                placeholder="Enter topic..."
+              />
+            </div>
+          </div>
+
+          {/* Document Type Selection */}
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-400 uppercase tracking-wider text-center">
+              Select Format
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <button
+                type="button"
+                onClick={() => setDocumentType('docx')}
+                className={`group relative p-6 rounded-2xl border transition-all duration-300 ${documentType === 'docx'
+                    ? 'bg-[#00ffff]/10 border-[#00ffff]/50 shadow-[0_0_30px_-10px_rgba(0,255,255,0.3)]'
+                    : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                  }`}
+              >
+                <div className="absolute top-4 right-4 w-5 h-5 rounded-full border border-white/20 flex items-center justify-center">
+                  {documentType === 'docx' && <div className="w-3 h-3 bg-[#00ffff] rounded-full shadow-[0_0_10px_#00ffff]" />}
+                </div>
+                <FileText className={`h-12 w-12 mb-4 mx-auto transition-colors ${documentType === 'docx' ? 'text-[#00ffff]' : 'text-gray-500'}`} />
+                <h3 className="text-xl font-bold mb-1 text-white">Word Document</h3>
+                <p className="text-sm text-gray-500">
+                  Standard text-based report format.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDocumentType('pptx')}
+                className={`group relative p-6 rounded-2xl border transition-all duration-300 ${documentType === 'pptx'
+                    ? 'bg-[#ff00ff]/10 border-[#ff00ff]/50 shadow-[0_0_30px_-10px_rgba(255,0,255,0.3)]'
+                    : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                  }`}
+              >
+                <div className="absolute top-4 right-4 w-5 h-5 rounded-full border border-white/20 flex items-center justify-center">
+                  {documentType === 'pptx' && <div className="w-3 h-3 bg-[#ff00ff] rounded-full shadow-[0_0_10px_#ff00ff]" />}
+                </div>
+                <MonitorPlay className={`h-12 w-12 mb-4 mx-auto transition-colors ${documentType === 'pptx' ? 'text-[#ff00ff]' : 'text-gray-500'}`} />
+                <h3 className="text-xl font-bold mb-1 text-white">PowerPoint</h3>
+                <p className="text-sm text-gray-500">
+                  Presentation slides with visual layout.
+                </p>
+              </button>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-white text-black py-4 rounded-xl font-bold text-lg hover:bg-gray-200 hover:scale-[1.02] transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-8 flex items-center justify-center group"
+          >
+            {loading ? (
+              <>
+                <Loader className="animate-spin mr-3 h-5 w-5" />
+                Processing...
+              </>
+            ) : (
+              <>
+                Launch Project
+                <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

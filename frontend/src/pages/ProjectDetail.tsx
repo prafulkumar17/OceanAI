@@ -1,8 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import {
+    Save,
+    ArrowLeft,
+    Download,
+    RefreshCw,
+    PenTool,
+    Undo,
+    FileText,
+    MonitorPlay,
+    Sparkles,
+    Loader,
+    Plus,
+    Trash2,
+    X
+} from 'lucide-react'
 import { projectApi } from '../services/api'
 import { Project } from '../types/project'
-import { ArrowLeft, Sparkles, Download, RefreshCw, Loader, Brain, FileText, PenTool, CheckCircle, Undo } from 'lucide-react'
+import LoadingSteps from '../components/LoadingSteps'
 
 export default function ProjectDetail() {
     const { id } = useParams<{ id: string }>()
@@ -11,15 +26,16 @@ export default function ProjectDetail() {
     const [loading, setLoading] = useState(true)
     const [generating, setGenerating] = useState(false)
     const [refining, setRefining] = useState(false)
+    const [error, setError] = useState('')
     const [refinementPrompt, setRefinementPrompt] = useState('')
-    const [streamingContent, setStreamingContent] = useState('')
+    const [streamedContent, setStreamedContent] = useState('')
     const [isEditing, setIsEditing] = useState(false)
-    const [editedContent, setEditedContent] = useState<any>(null)
+    const [editableContent, setEditableContent] = useState('') // For raw JSON editing (fallback)
+    const [structuredContent, setStructuredContent] = useState<any>(null) // For structured DOCX/PPTX editing
     const [saving, setSaving] = useState(false)
     const [contentHistory, setContentHistory] = useState<string[]>([])
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
     const [loadingPdf, setLoadingPdf] = useState(false)
-    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         if (id) {
@@ -27,596 +43,700 @@ export default function ProjectDetail() {
         }
     }, [id])
 
+    // Load PDF preview when content changes for PPTX
     useEffect(() => {
-        // Auto-load PDF preview when PPTX content changes
-        if (project?.generated_content && project.document_type === 'pptx' && id) {
+        if (project?.document_type === 'pptx' && project.generated_content && !isEditing && id) {
             loadPdfPreview(parseInt(id))
         }
-    }, [project?.generated_content, project?.document_type, id])
+    }, [project?.generated_content, isEditing, id])
 
     const loadProject = async (projectId: number) => {
         try {
-            setLoading(true)
             const data = await projectApi.getProject(projectId)
             setProject(data)
-            setError(null)
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to load project')
+            setStreamedContent(data.generated_content ? JSON.parse(data.generated_content) : '')
+        } catch (err) {
+            setError('Failed to load project')
         } finally {
             setLoading(false)
         }
     }
 
-    const handleGenerate = async () => {
-        if (!id) return
-
-        setGenerating(true)
-        setError(null)
-        setStreamingContent('')
-
-        const token = localStorage.getItem('access_token')
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-        const eventSource = new EventSource(`${API_URL}/api/projects/${id}/generate/stream?token=${token}`)
-
-        eventSource.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data)
-
-                if (data.chunk) {
-                    setStreamingContent(prev => prev + data.chunk)
-                } else if (data.status === 'complete') {
-                    // Save current content to history before updating
-                    if (project?.generated_content) {
-                        setContentHistory(prev => [...prev, project.generated_content!])
-                    }
-                    setProject(prev => prev ? { ...prev, generated_content: JSON.stringify(data.content) } : null)
-                    setGenerating(false)
-                    setStreamingContent('')
-                    eventSource.close()
-                } else if (data.error) {
-                    setError(data.error)
-                    setGenerating(false)
-                    eventSource.close()
-                }
-            } catch (e) {
-                console.error('Error parsing event data:', e)
-            }
+    const loadPdfPreview = async (projectId: number) => {
+        setLoadingPdf(true)
+        try {
+            const blob = await projectApi.getPdfPreview(projectId)
+            const url = URL.createObjectURL(blob)
+            setPdfPreviewUrl(prev => {
+                if (prev) URL.revokeObjectURL(prev)
+                return url
+            })
+        } catch (err) {
+            console.error('Failed to load PDF preview:', err)
+        } finally {
+            setLoadingPdf(false)
         }
+    }
 
-        eventSource.onerror = (err) => {
-            console.error('EventSource error:', err)
-            setError('Connection failed')
+    const saveVersion = () => {
+        if (project?.generated_content) {
+            setContentHistory(prev => [...prev, project.generated_content!])
+        }
+    }
+
+    const handleRevert = async () => {
+        if (contentHistory.length === 0 || !project || !id) return
+
+        const previousContent = contentHistory[contentHistory.length - 1]
+        const newHistory = contentHistory.slice(0, -1)
+
+        try {
+            setSaving(true)
+            await projectApi.updateProjectContent(parseInt(id), JSON.parse(previousContent))
+            setProject({ ...project, generated_content: previousContent })
+            setStreamedContent(JSON.parse(previousContent))
+            setContentHistory(newHistory)
+        } catch (err) {
+            setError('Failed to revert changes')
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const handleGenerate = async () => {
+        if (!project || !id) return
+        setGenerating(true)
+        setError('')
+        setStreamedContent('')
+        saveVersion()
+
+        try {
+            const updatedProject = await projectApi.generateDocument(parseInt(id))
+            setProject(updatedProject)
+            setStreamedContent(updatedProject.generated_content ? JSON.parse(updatedProject.generated_content) : '')
+        } catch (err) {
+            setError('Failed to generate content')
+        } finally {
             setGenerating(false)
-            eventSource.close()
         }
     }
 
     const handleRefine = async () => {
-        if (!id || !refinementPrompt.trim()) return
+        if (!project || !refinementPrompt.trim() || !id) return
+        setRefining(true)
+        setError('')
+        saveVersion()
+
         try {
-            setRefining(true)
-            setError(null)
-            // Save current content to history before refining
-            if (project?.generated_content) {
-                setContentHistory(prev => [...prev, project.generated_content!])
-            }
-            const updated = await projectApi.refineDocument(parseInt(id), refinementPrompt)
-            setProject(updated)
+            const updatedProject = await projectApi.refineDocument(parseInt(id), refinementPrompt)
+            setProject(updatedProject)
+            setStreamedContent(updatedProject.generated_content ? JSON.parse(updatedProject.generated_content) : '')
             setRefinementPrompt('')
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to refine document')
+        } catch (err) {
+            setError('Failed to refine content')
         } finally {
             setRefining(false)
         }
     }
 
     const handleExport = async () => {
-        if (!id) return
+        if (!project || !id) return
         try {
             const blob = await projectApi.exportDocument(parseInt(id))
             const url = window.URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            a.download = `${project?.title || 'document'}.${project?.document_type || 'docx'}`
+            a.download = `${project.title}.${project.document_type}`
             document.body.appendChild(a)
             a.click()
             window.URL.revokeObjectURL(url)
             document.body.removeChild(a)
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to export document')
+        } catch (err) {
+            setError('Failed to export project')
         }
     }
 
     const handleEdit = () => {
         if (project?.generated_content) {
-            const content = JSON.parse(project.generated_content)
-            setEditedContent(content)
-            setIsEditing(true)
+            try {
+                const content = JSON.parse(project.generated_content)
+
+                if (project.document_type === 'docx' && content.sections && Array.isArray(content.sections)) {
+                    // Normalize content to array if it's a string
+                    const normalizedSections = content.sections.map((section: any) => ({
+                        ...section,
+                        content: Array.isArray(section.content) ? section.content : [section.content || ""]
+                    }))
+                    setStructuredContent({ ...content, sections: normalizedSections })
+                } else if (project.document_type === 'pptx' && content.slides && Array.isArray(content.slides)) {
+                    // Normalize content to array if it's a string, and map bullets to content
+                    const normalizedSlides = content.slides.map((slide: any) => ({
+                        ...slide,
+                        content: slide.bullets || (Array.isArray(slide.content) ? slide.content : [slide.content || ""])
+                    }))
+                    setStructuredContent({ ...content, slides: normalizedSlides })
+                } else {
+                    setEditableContent(JSON.stringify(content, null, 2))
+                }
+                setIsEditing(true)
+            } catch (e) {
+                console.error("Error parsing content for edit:", e)
+                setEditableContent(project.generated_content)
+                setIsEditing(true)
+            }
         }
     }
 
-    const handleCancelEdit = () => {
-        setIsEditing(false)
-        setEditedContent(null)
-    }
-
     const handleSaveEdit = async () => {
-        if (!id || !editedContent) return
+        if (!project || !id) return
+        setSaving(true)
+        saveVersion()
         try {
-            setSaving(true)
-            const updated = await projectApi.updateProjectContent(parseInt(id), editedContent)
-            setProject(updated)
+            let contentObj
+
+            if ((project.document_type === 'docx' || project.document_type === 'pptx') && structuredContent) {
+                if (project.document_type === 'pptx') {
+                    // Map content back to bullets for PPTX
+                    contentObj = {
+                        ...structuredContent,
+                        slides: structuredContent.slides.map((slide: any) => {
+                            // Create a new object to avoid mutating state
+                            const newSlide = { ...slide, bullets: slide.content };
+                            delete newSlide.content;
+                            return newSlide;
+                        })
+                    }
+                } else {
+                    contentObj = structuredContent
+                }
+            } else {
+                contentObj = JSON.parse(editableContent)
+            }
+
+            await projectApi.updateProjectContent(parseInt(id), contentObj)
+
+            const newContentStr = JSON.stringify(contentObj)
+            setProject({ ...project, generated_content: newContentStr })
+            setStreamedContent(contentObj)
             setIsEditing(false)
-            setEditedContent(null)
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to save changes')
+            setStructuredContent(null)
+        } catch (err) {
+            setError('Failed to save changes: Invalid format')
         } finally {
             setSaving(false)
         }
     }
 
-    const handleRevert = () => {
-        if (contentHistory.length === 0) return
-
-        const previousContent = contentHistory[contentHistory.length - 1]
-        const newHistory = contentHistory.slice(0, -1)
-
-        setProject(prev => prev ? { ...prev, generated_content: previousContent } : null)
-        setContentHistory(newHistory)
+    // DOCX Helpers
+    const updateSectionTitle = (index: number, newTitle: string) => {
+        if (!structuredContent?.sections) return
+        const newSections = [...structuredContent.sections]
+        newSections[index].title = newTitle
+        setStructuredContent({ ...structuredContent, sections: newSections })
     }
 
-    const loadPdfPreview = async (projectId: number) => {
-        try {
-            setLoadingPdf(true)
-            const blob = await projectApi.getPdfPreview(projectId)
-            const url = window.URL.createObjectURL(blob)
+    const updateParagraph = (sectionIndex: number, pIndex: number, newText: string) => {
+        if (!structuredContent?.sections) return
+        const newSections = [...structuredContent.sections]
+        if (!newSections[sectionIndex].content) newSections[sectionIndex].content = []
+        newSections[sectionIndex].content[pIndex] = newText
+        setStructuredContent({ ...structuredContent, sections: newSections })
+    }
 
-            // Clean up old URL
-            if (pdfPreviewUrl) {
-                window.URL.revokeObjectURL(pdfPreviewUrl)
-            }
+    const addParagraph = (sectionIndex: number) => {
+        if (!structuredContent?.sections) return
+        const newSections = [...structuredContent.sections]
+        if (!newSections[sectionIndex].content) newSections[sectionIndex].content = []
+        newSections[sectionIndex].content.push("New paragraph...")
+        setStructuredContent({ ...structuredContent, sections: newSections })
+    }
 
-            setPdfPreviewUrl(url)
-        } catch (err: any) {
-            console.error('Failed to load PDF preview:', err)
-            // Silently fail - will show fallback message
-        } finally {
-            setLoadingPdf(false)
+    const removeParagraph = (sectionIndex: number, pIndex: number) => {
+        if (!structuredContent?.sections) return
+        const newSections = [...structuredContent.sections]
+        if (newSections[sectionIndex].content) {
+            newSections[sectionIndex].content.splice(pIndex, 1)
+            setStructuredContent({ ...structuredContent, sections: newSections })
         }
     }
 
-    const getProgressStep = (length: number) => {
-        if (length < 100) return 0
-        if (length < 300) return 1
-        if (length < 1000) return 2
-        return 3
+    const addSection = () => {
+        const sections = structuredContent?.sections || []
+        const newSections = [...sections, { title: "New Section", content: ["New paragraph..."] }]
+        setStructuredContent({ ...structuredContent, sections: newSections })
     }
 
-    const renderLoadingSteps = () => {
-        const currentStep = getProgressStep(streamingContent.length)
-        const steps = [
-            { label: 'Analyzing Topic', icon: Brain },
-            { label: 'Structuring Outline', icon: FileText },
-            { label: 'Drafting Content', icon: PenTool },
-            { label: 'Refining Details', icon: Sparkles },
-            { label: 'Finalizing', icon: CheckCircle },
-        ]
-
-        return (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto my-12">
-                <div className="text-center mb-8">
-                    <h3 className="text-xl font-bold text-gray-900">Generating Your Document</h3>
-                    <p className="text-gray-500 mt-2">OceanAI is crafting your content...</p>
-                </div>
-
-                <div className="space-y-6">
-                    {steps.map((step, idx) => {
-                        const isActive = idx === currentStep
-                        const isCompleted = idx < currentStep
-
-                        return (
-                            <div key={idx} className={`flex items-center transition-all duration-500 ${isActive || isCompleted ? 'opacity-100' : 'opacity-40'}`}>
-                                <div className={`
-                  flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center mr-4 border-2
-                  ${isActive ? 'border-primary-600 bg-primary-50 text-primary-600' : ''}
-                  ${isCompleted ? 'border-green-500 bg-green-50 text-green-500' : ''}
-                  ${!isActive && !isCompleted ? 'border-gray-200 bg-gray-50 text-gray-400' : ''}
-                `}>
-                                    {isCompleted ? (
-                                        <CheckCircle className="h-6 w-6" />
-                                    ) : (
-                                        <step.icon className={`h-5 w-5 ${isActive ? 'animate-pulse' : ''}`} />
-                                    )}
-                                </div>
-
-                                <div className="flex-1">
-                                    <h4 className={`font-medium ${isActive ? 'text-primary-700' : 'text-gray-900'}`}>
-                                        {step.label}
-                                    </h4>
-                                    {isActive && (
-                                        <div className="h-1.5 w-full bg-gray-100 rounded-full mt-2 overflow-hidden">
-                                            <div className="h-full bg-primary-500 rounded-full animate-progress"></div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-gray-100">
-                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Live Preview</p>
-                    <div className="font-mono text-xs text-gray-500 h-12 overflow-hidden opacity-70">
-                        {streamingContent.slice(-150)}
-                        <span className="animate-pulse">_</span>
-                    </div>
-                </div>
-            </div>
-        )
+    const removeSection = (index: number) => {
+        if (!structuredContent?.sections) return
+        const newSections = [...structuredContent.sections]
+        newSections.splice(index, 1)
+        setStructuredContent({ ...structuredContent, sections: newSections })
     }
 
-    const renderPreview = () => {
-        if (!project?.generated_content) return null
+    // PPTX Helpers
+    const updateSlideTitle = (index: number, newTitle: string) => {
+        if (!structuredContent?.slides) return
+        const newSlides = [...structuredContent.slides]
+        newSlides[index].title = newTitle
+        setStructuredContent({ ...structuredContent, slides: newSlides })
+    }
 
-        try {
-            const content = JSON.parse(project.generated_content)
+    const updateSlidePoint = (slideIndex: number, pIndex: number, newText: string) => {
+        if (!structuredContent?.slides) return
+        const newSlides = [...structuredContent.slides]
+        if (!newSlides[slideIndex].content) newSlides[slideIndex].content = []
+        newSlides[slideIndex].content[pIndex] = newText
+        setStructuredContent({ ...structuredContent, slides: newSlides })
+    }
 
-            if (project.document_type === 'docx' && content.sections) {
-                return (
-                    <div className="bg-white rounded-lg shadow-xl border border-gray-300 p-12 max-w-4xl mx-auto mb-8" style={{ fontFamily: 'Georgia, serif' }}>
-                        <div className="prose prose-lg max-w-none">
-                            <h1 className="text-4xl font-bold text-center mb-8 pb-4 border-b-2 border-gray-300">
-                                {project.title}
-                            </h1>
-                            {content.sections.map((section: any, idx: number) => (
-                                <div key={idx} className="mb-8">
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-6">
-                                        {section.title}
-                                    </h2>
-                                    {section.content?.map((para: string, pIdx: number) => (
-                                        <p key={pIdx} className="text-gray-800 leading-relaxed mb-4 text-justify">
-                                            {para}
-                                        </p>
-                                    ))}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )
-            }
+    const addSlidePoint = (slideIndex: number) => {
+        if (!structuredContent?.slides) return
+        const newSlides = [...structuredContent.slides]
+        if (!newSlides[slideIndex].content) newSlides[slideIndex].content = []
+        newSlides[slideIndex].content.push("New bullet point...")
+        setStructuredContent({ ...structuredContent, slides: newSlides })
+    }
 
-            if (project.document_type === 'pptx' && content.slides) {
-                // Show PDF preview if available
-                if (pdfPreviewUrl) {
-                    return (
-                        <div className="mb-8 relative">
-                            <iframe
-                                src={pdfPreviewUrl}
-                                className={`w-full border-2 border-gray-300 rounded-lg shadow-xl transition-all duration-300 ${loadingPdf ? 'blur-sm' : ''}`}
-                                style={{ height: '600px' }}
-                                title="PDF Preview"
-                            />
-                            {loadingPdf && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-lg">
-                                    <div className="bg-white rounded-lg shadow-lg p-6 flex flex-col items-center">
-                                        <Loader className="h-8 w-8 animate-spin text-primary-600 mb-2" />
-                                        <p className="text-gray-700 font-medium">Updating preview...</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )
-                }
+    const removeSlidePoint = (slideIndex: number, pIndex: number) => {
+        if (!structuredContent?.slides) return
+        const newSlides = [...structuredContent.slides]
+        if (newSlides[slideIndex].content) {
+            newSlides[slideIndex].content.splice(pIndex, 1)
+            setStructuredContent({ ...structuredContent, slides: newSlides })
+        }
+    }
 
-                // Show loading state
-                if (loadingPdf) {
-                    return (
-                        <div className="text-center py-12">
-                            <Loader className="h-8 w-8 mx-auto animate-spin text-primary-600 mb-2" />
-                            <p className="text-gray-500">Generating preview...</p>
-                        </div>
-                    )
-                }
+    const addSlide = () => {
+        const slides = structuredContent?.slides || []
+        const newSlides = [...slides, { title: "New Slide", content: ["New point..."] }]
+        setStructuredContent({ ...structuredContent, slides: newSlides })
+    }
 
-                // Fallback message
-                return (
-                    <div className="text-center py-12 text-gray-500">
-                        <p>Preview not available</p>
-                    </div>
-                )
-            }
-        } catch (e) {
-            return null
+    const removeSlide = (index: number) => {
+        if (!structuredContent?.slides) return
+        const newSlides = [...structuredContent.slides]
+        newSlides.splice(index, 1)
+        setStructuredContent({ ...structuredContent, slides: newSlides })
+    }
+
+    const renderContent = () => {
+        if (generating) {
+            return <LoadingSteps />
         }
 
-        return null
-    }
-
-    const renderEditableContent = () => {
-        if (!project?.generated_content) return null
-
-        try {
-            const content = editedContent || JSON.parse(project.generated_content)
-
-            if (project.document_type === 'docx' && content.sections) {
+        if (isEditing) {
+            // Structured Editor for DOCX
+            if (project?.document_type === 'docx' && structuredContent?.sections && Array.isArray(structuredContent.sections)) {
                 return (
-                    <div className="space-y-6">
-                        {content.sections.map((section: any, idx: number) => (
-                            <div key={idx} className="border-l-4 border-primary-500 pl-4">
-                                <input
-                                    type="text"
-                                    value={section.title}
-                                    onChange={(e) => {
-                                        const newContent = { ...content }
-                                        newContent.sections[idx].title = e.target.value
-                                        setEditedContent(newContent)
-                                    }}
-                                    className="text-xl font-semibold text-gray-900 mb-2 w-full border-b-2 border-primary-300 focus:outline-none focus:border-primary-600"
-                                />
-                                {section.content?.map((para: string, pIdx: number) => (
-                                    <textarea
-                                        key={pIdx}
-                                        value={para}
-                                        onChange={(e) => {
-                                            const newContent = { ...content }
-                                            newContent.sections[idx].content[pIdx] = e.target.value
-                                            setEditedContent(newContent)
-                                        }}
-                                        rows={3}
-                                        className="w-full text-gray-700 mb-3 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                    />
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-                )
-            }
-
-            if (project.document_type === 'pptx' && content.slides) {
-                return (
-                    <div className="space-y-6">
-                        {content.slides.map((slide: any, idx: number) => (
-                            <div key={idx} className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                                <input
-                                    type="text"
-                                    value={slide.title}
-                                    onChange={(e) => {
-                                        const newContent = { ...content }
-                                        newContent.slides[idx].title = e.target.value
-                                        setEditedContent(newContent)
-                                    }}
-                                    className="text-xl font-semibold text-gray-900 mb-4 w-full border-b-2 border-primary-300 focus:outline-none focus:border-primary-600"
-                                />
-                                <ul className="space-y-2">
-                                    {slide.bullets?.map((bullet: string, bIdx: number) => (
-                                        <li key={bIdx} className="flex items-start">
-                                            <span className="text-primary-600 mr-2">•</span>
-                                            <input
-                                                type="text"
-                                                value={bullet}
-                                                onChange={(e) => {
-                                                    const newContent = { ...content }
-                                                    newContent.slides[idx].bullets[bIdx] = e.target.value
-                                                    setEditedContent(newContent)
-                                                }}
-                                                className="flex-1 text-gray-700 border-b border-gray-300 focus:outline-none focus:border-primary-600"
-                                            />
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                )
-            }
-        } catch (e) {
-            return <div className="text-gray-500">Error parsing content</div>
-        }
-
-        return null
-    }
-
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <Loader className="h-8 w-8 text-primary-600 animate-spin" />
-            </div>
-        )
-    }
-
-    if (error && !project) {
-        return (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800">{error}</p>
-                <button
-                    onClick={() => navigate('/projects')}
-                    className="mt-4 text-primary-600 hover:text-primary-700"
-                >
-                    ← Back to Projects
-                </button>
-            </div>
-        )
-    }
-
-    if (!project) {
-        return <div>Project not found</div>
-    }
-
-    return (
-        <div className="animate-fadeIn">
-            <button
-                onClick={() => navigate('/projects')}
-                className="flex items-center text-slate-400 hover:text-white mb-6 transition-colors"
-            >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Projects
-            </button>
-
-            <div className="glass-card overflow-hidden">
-                <div className="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 px-6 py-6 border-b border-amber-900/20">
-                    <h1 className="text-3xl font-bold text-white mb-2 animate-slideUp">{project.title}</h1>
-                    <p className="text-amber-100">Topic: {project.topic}</p>
-                    <span className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-xs font-semibold text-white backdrop-blur-sm">
-                        {project.document_type.toUpperCase()}
-                    </span>
-                </div>
-
-                <div className="px-6 py-4 border-b border-amber-900/30 bg-neutral-900/30 backdrop-blur-sm">
-                    {!project.generated_content ? (
-                        <button
-                            onClick={handleGenerate}
-                            disabled={generating}
-                            className="gradient-button flex items-center px-6 py-3 rounded-xl font-semibold text-white disabled:opacity-50"
-                        >
-                            {generating ? (
-                                <>
-                                    <Loader className="h-4 w-4 mr-2 animate-spin" />
-                                    Generating...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="h-4 w-4 mr-2" />
-                                    Generate Document
-                                </>
-                            )}
-                        </button>
-                    ) : (
-                        <div className="flex space-x-3">
-                            <button
-                                onClick={handleExport}
-                                className="flex items-center px-4 py-2.5 bg-gradient-to-r from-amber-700 to-amber-800 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-amber-700 shadow-lg hover:shadow-amber-900/30 transition-all duration-300"
-                            >
-                                <Download className="h-4 w-4 mr-2" />
-                                Export
-                            </button>
-
-                            <button
-                                onClick={handleRevert}
-                                disabled={contentHistory.length === 0}
-                                className="flex items-center px-4 py-2.5 bg-gradient-to-r from-orange-700 to-orange-800 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 shadow-lg hover:shadow-orange-900/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                                title={contentHistory.length === 0 ? 'No previous versions' : `Revert to previous version (${contentHistory.length} version${contentHistory.length > 1 ? 's' : ''} available)`}
-                            >
-                                <Undo className="h-4 w-4 mr-2" />
-                                Revert
-                            </button>
-
-                            {!isEditing ? (
-                                <>
+                    <div className="h-full flex flex-col bg-[#111] border border-white/10 rounded-xl overflow-hidden">
+                        <div className="flex-grow overflow-y-auto p-8 custom-scrollbar space-y-8">
+                            {structuredContent.sections.map((section: any, sIndex: number) => (
+                                <div key={sIndex} className="bento-card p-6 border-white/5 bg-white/5 relative group">
                                     <button
-                                        onClick={handleEdit}
-                                        className="flex items-center px-4 py-2.5 bg-gradient-to-r from-amber-700 to-amber-800 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-amber-700 shadow-lg hover:shadow-amber-900/30 transition-all duration-300"
+                                        onClick={() => removeSection(sIndex)}
+                                        className="absolute top-4 right-4 p-2 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                        title="Remove Section"
                                     >
-                                        <PenTool className="h-4 w-4 mr-2" />
-                                        Edit
+                                        <Trash2 className="w-4 h-4" />
                                     </button>
-                                    <button
-                                        onClick={handleGenerate}
-                                        disabled={generating}
-                                        className="gradient-button flex items-center px-4 py-2.5 rounded-xl font-semibold text-white disabled:opacity-50"
-                                    >
-                                        {generating ? (
-                                            <>
-                                                <Loader className="h-4 w-4 mr-2 animate-spin" />
-                                                Regenerating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <RefreshCw className="h-4 w-4 mr-2" />
-                                                Regenerate
-                                            </>
-                                        )}
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={handleSaveEdit}
-                                        disabled={saving}
-                                        className="gradient-button flex items-center px-4 py-2.5 rounded-xl font-semibold text-white disabled:opacity-50"
-                                    >
-                                        {saving ? (
-                                            <>
-                                                <Loader className="h-4 w-4 mr-2 animate-spin" />
-                                                Saving...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle className="h-4 w-4 mr-2" />
-                                                Save
-                                            </>
-                                        )}
-                                    </button>
-                                    <button
-                                        onClick={handleCancelEdit}
-                                        className="flex items-center px-4 py-2.5 bg-neutral-800 text-white rounded-xl font-semibold hover:bg-neutral-700 border border-neutral-700 hover:border-neutral-600 transition-all duration-300"
-                                    >
-                                        Cancel
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
 
-                <div className="p-6 bg-neutral-900/20 backdrop-blur-sm">
-                    {generating ? (
-                        renderLoadingSteps()
-                    ) : project.generated_content ? (
-                        <>
-                            {/* Show preview when NOT editing, show editable content when editing */}
-                            {!isEditing ? renderPreview() : (
-                                <div className="mb-6">{renderEditableContent()}</div>
-                            )}
-
-                            {/* Refinement Section - always visible at bottom */}
-                            {!isEditing && (
-                                <div className="border-t border-amber-900/30 pt-6 mt-6">
-                                    <h3 className="text-lg font-semibold text-amber-100 mb-3">
-                                        Refine Content
-                                    </h3>
-                                    <div className="space-y-3">
-                                        <textarea
-                                            value={refinementPrompt}
-                                            onChange={(e) => setRefinementPrompt(e.target.value)}
-                                            placeholder="Enter your refinement instructions (e.g., 'Make it more formal', 'Add more details about X', 'Simplify the language')"
-                                            rows={3}
-                                            className="w-full px-4 py-3 bg-neutral-900/50 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all duration-200 resize-none"
+                                    <div className="mb-4">
+                                        <label className="text-xs font-bold text-[#ccff00] uppercase tracking-wider mb-2 block">Section Title</label>
+                                        <input
+                                            type="text"
+                                            value={section.title || ''}
+                                            onChange={(e) => updateSectionTitle(sIndex, e.target.value)}
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-lg font-bold text-white focus:border-[#ccff00] focus:outline-none transition-colors"
                                         />
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Content</label>
+                                        {Array.isArray(section.content) && section.content.map((para: string, pIndex: number) => (
+                                            <div key={pIndex} className="flex gap-2 group/para">
+                                                <textarea
+                                                    value={para || ''}
+                                                    onChange={(e) => updateParagraph(sIndex, pIndex, e.target.value)}
+                                                    rows={3}
+                                                    className="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-sm text-gray-300 focus:border-[#00ffff] focus:outline-none transition-colors resize-y"
+                                                />
+                                                <button
+                                                    onClick={() => removeParagraph(sIndex, pIndex)}
+                                                    className="p-2 text-gray-600 hover:text-red-400 opacity-0 group-hover/para:opacity-100 transition-opacity self-start"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
                                         <button
-                                            onClick={handleRefine}
-                                            disabled={refining || !refinementPrompt.trim()}
-                                            className="gradient-button flex items-center px-4 py-2.5 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                            onClick={() => addParagraph(sIndex)}
+                                            className="w-full py-2 border border-dashed border-white/10 rounded-lg text-xs font-bold text-gray-500 hover:text-white hover:border-white/30 transition-all flex items-center justify-center"
                                         >
-                                            {refining ? (
-                                                <>
-                                                    <Loader className="h-4 w-4 mr-2 animate-spin" />
-                                                    Refining...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Sparkles className="h-4 w-4 mr-2" />
-                                                    Refine Content
-                                                </>
-                                            )}
+                                            <Plus className="w-3 h-3 mr-2" /> Add Paragraph
                                         </button>
                                     </div>
                                 </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="text-center py-12 text-neutral-400">
-                            <Sparkles className="h-12 w-12 mx-auto mb-4 text-amber-500/50" />
-                            <p>No content generated yet. Click "Generate Document" to create your document.</p>
+                            ))}
+
+                            <button
+                                onClick={addSection}
+                                className="w-full py-4 border border-dashed border-[#ccff00]/30 rounded-xl text-[#ccff00] font-bold hover:bg-[#ccff00]/10 transition-all flex items-center justify-center"
+                            >
+                                <Plus className="w-5 h-5 mr-2" /> Add New Section
+                            </button>
+                        </div>
+
+                        <div className="p-4 border-t border-white/10 bg-[#050505] flex justify-end space-x-4">
+                            <button
+                                onClick={() => { setIsEditing(false); setStructuredContent(null); }}
+                                className="px-6 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveEdit}
+                                disabled={saving}
+                                className="bg-[#00ffff] text-black px-6 py-2 rounded-lg font-bold hover:bg-[#00e6e6] transition-colors flex items-center shadow-[0_0_15px_rgba(0,255,255,0.2)]"
+                            >
+                                {saving ? <Loader className="animate-spin h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                )
+            }
+
+            // Structured Editor for PPTX
+            if (project?.document_type === 'pptx' && structuredContent?.slides && Array.isArray(structuredContent.slides)) {
+                return (
+                    <div className="h-full flex flex-col bg-[#050505] border border-white/10 rounded-xl overflow-hidden">
+                        <div className="flex-grow overflow-y-auto p-6 custom-scrollbar space-y-6">
+                            {structuredContent.slides.map((slide: any, sIndex: number) => (
+                                <div key={sIndex} className="bg-[#111] border border-white/10 rounded-xl p-6 relative">
+                                    <div className="absolute -left-3 top-6 w-6 h-6 bg-[#ff00ff] rounded-full flex items-center justify-center text-xs font-bold text-black border-2 border-[#111] z-10">
+                                        {sIndex + 1}
+                                    </div>
+                                    <button
+                                        onClick={() => removeSlide(sIndex)}
+                                        className="absolute top-4 right-4 p-2 text-gray-500 hover:text-red-400 transition-colors"
+                                        title="Remove Slide"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+
+                                    <div className="mb-6 ml-4">
+                                        <label className="text-xs font-bold text-[#ff00ff] uppercase tracking-wider mb-2 block">Slide Title</label>
+                                        <input
+                                            type="text"
+                                            value={slide.title || ''}
+                                            onChange={(e) => updateSlideTitle(sIndex, e.target.value)}
+                                            className="w-full bg-black border border-white/20 rounded-lg p-3 text-lg font-bold text-white focus:border-[#ff00ff] focus:outline-none transition-colors"
+                                            placeholder="Enter slide title..."
+                                        />
+                                    </div>
+
+                                    <div className="space-y-3 ml-4">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Bullet Points</label>
+                                        {Array.isArray(slide.content) && slide.content.map((point: any, pIndex: number) => {
+                                            const pointText = typeof point === 'object' ? (point.text || JSON.stringify(point)) : point;
+                                            return (
+                                                <div key={pIndex} className="flex gap-3 items-start">
+                                                    <div className="mt-3 w-1.5 h-1.5 rounded-full bg-[#ff00ff]/50 flex-shrink-0" />
+                                                    <textarea
+                                                        value={pointText || ''}
+                                                        onChange={(e) => updateSlidePoint(sIndex, pIndex, e.target.value)}
+                                                        rows={2}
+                                                        className="w-full bg-black border border-white/20 rounded-lg p-3 text-sm text-gray-300 focus:border-[#ff00ff] focus:outline-none transition-colors resize-y"
+                                                        placeholder="Enter bullet point..."
+                                                    />
+                                                    <button
+                                                        onClick={() => removeSlidePoint(sIndex, pIndex)}
+                                                        className="mt-2 p-1 text-gray-600 hover:text-red-400 transition-colors"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                        <button
+                                            onClick={() => addSlidePoint(sIndex)}
+                                            className="w-full py-3 border border-dashed border-white/20 rounded-lg text-xs font-bold text-gray-400 hover:text-white hover:border-white/40 transition-all flex items-center justify-center mt-4"
+                                        >
+                                            <Plus className="w-3 h-3 mr-2" /> Add Bullet Point
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+
+                            <button
+                                onClick={addSlide}
+                                className="w-full py-4 border border-dashed border-[#ff00ff]/30 rounded-xl text-[#ff00ff] font-bold hover:bg-[#ff00ff]/10 transition-all flex items-center justify-center"
+                            >
+                                <Plus className="w-5 h-5 mr-2" /> Add New Slide
+                            </button>
+                        </div>
+
+                        <div className="p-4 border-t border-white/10 bg-[#050505] flex justify-end space-x-4">
+                            <button
+                                onClick={() => { setIsEditing(false); setStructuredContent(null); }}
+                                className="px-6 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveEdit}
+                                disabled={saving}
+                                className="bg-[#ff00ff] text-black px-6 py-2 rounded-lg font-bold hover:bg-[#e600e6] transition-colors flex items-center shadow-[0_0_15px_rgba(255,0,255,0.2)]"
+                            >
+                                {saving ? <Loader className="animate-spin h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                )
+            }
+
+            // Fallback Raw Editor
+            return (
+                <div className="h-full flex flex-col">
+                    <textarea
+                        value={editableContent}
+                        onChange={(e) => setEditableContent(e.target.value)}
+                        className="flex-grow w-full p-6 font-mono text-sm bg-[#050505] text-gray-300 border border-white/10 resize-none focus:outline-none focus:border-[#ccff00]/50 rounded-xl"
+                        spellCheck={false}
+                    />
+                                        <div className="flex justify-end space-x-4 mt-4">
+                                            <button
+                                                onClick={() => setIsEditing(false)}
+                                                className="px-6 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleSaveEdit}
+                                                disabled={saving}
+                                                className="bg-[#00ffff] text-black px-6 py-2 rounded-lg font-bold hover:bg-[#00e6e6] transition-colors flex items-center"
+                                            >
+                                                {saving ? <Loader className="animate-spin h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                                Save Changes
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                    
+                    // Render DOCX Content (Preview Mode)
+                    if (project?.document_type === 'docx' && typeof streamedContent === 'object' && streamedContent !== null) {
+                        const content = streamedContent as any
+                        if (content.sections && Array.isArray(content.sections)) {
+                            return (
+                                <div className="prose prose-invert max-w-none p-8 bg-[#111] border border-white/10 rounded-xl h-full overflow-y-auto custom-scrollbar">
+                                    {content.sections.map((section: any, index: number) => (
+                                        <div key={index} className="mb-10 last:mb-0 animate-slideUp" style={{ animationDelay: `${index * 0.1}s` }}>
+                                            <h2 className="text-2xl font-bold mb-4 text-[#ccff00] border-b border-white/10 pb-2">
+                                                {section.title}
+                                            </h2>
+                                            <div className="space-y-4 text-gray-300 leading-relaxed">
+                                                {section.content.map((paragraph: string, pIndex: number) => (
+                                                    <p key={pIndex}>{paragraph}</p>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )
+                        }
+                    }
+return (
+    <div className="prose prose-invert max-w-none p-8 bg-[#111] border border-white/10 rounded-xl h-full overflow-y-auto font-mono text-sm text-gray-300">
+        <pre className="whitespace-pre-wrap font-mono">
+            {typeof streamedContent === 'string' ? streamedContent : JSON.stringify(streamedContent, null, 2)}
+        </pre>
+    </div>
+)
+    }
+
+if (loading) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <div className="animate-spin h-12 w-12 border-4 border-[#ccff00] border-t-transparent rounded-full"></div>
+        </div>
+    )
+}
+
+if (!project) return <div>Project not found</div>
+
+return (
+    <div className="min-h-screen pb-20">
+        {/* Top Bar */}
+        <div className="bg-[#050505]/80 backdrop-blur-xl border-b border-white/10 sticky top-16 z-40 px-6 py-4 flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+                <button onClick={() => navigate('/projects')} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+                    <ArrowLeft className="h-5 w-5" />
+                </button>
+                <div>
+                    <h1 className="text-xl font-bold tracking-tight text-white">{project.title}</h1>
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${project.document_type === 'docx' ? 'bg-blue-500/10 text-blue-400' : 'bg-orange-500/10 text-orange-400'
+                            }`}>
+                            {project.document_type.toUpperCase()}
+                        </span>
+                        <span>•</span>
+                        <span>{project.topic}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+                <button
+                    onClick={handleExport}
+                    disabled={!project.generated_content}
+                    className="bg-[#ccff00] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#b3e600] disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors shadow-[0_0_15px_rgba(204,255,0,0.2)]"
+                >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                </button>
+
+                <button
+                    onClick={handleRevert}
+                    disabled={contentHistory.length === 0}
+                    className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors"
+                    title="Revert to previous version"
+                >
+                    <Undo className="h-5 w-5" />
+                </button>
+
+                {!isEditing && (
+                    <button
+                        onClick={handleEdit}
+                        disabled={!project.generated_content}
+                        className="bg-white/10 text-white px-4 py-2 rounded-lg font-medium hover:bg-white/20 disabled:opacity-50 transition-colors flex items-center"
+                    >
+                        <PenTool className="h-4 w-4 mr-2" />
+                        Edit
+                    </button>
+                )}
+            </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {error && (
+                <div className="mb-8 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center animate-fadeIn">
+                    <span className="mr-2">⚠️</span> {error}
+                </div>
+            )}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
+
+                {/* Main Content / Preview Area */}
+                <div className="lg:col-span-2 flex flex-col h-full">
+                    <div className="flex justify-between items-center mb-4 px-1">
+                        <div className="flex items-center text-sm font-medium text-gray-400">
+                            {project.document_type === 'pptx' ? <MonitorPlay className="h-4 w-4 mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
+                            {isEditing ? 'Editor Mode' : 'Preview Mode'}
+                        </div>
+                        <div className="flex space-x-2">
+                            <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
+                            <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                            <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                        </div>
+                    </div>
+
+                    <div className="flex-grow">
+                        {renderContent()}
+                    </div>
+                </div>
+
+                {/* Controls Sidebar */}
+                <div className="space-y-6">
+                    {/* Generate / Regenerate Box */}
+                    <div className="bento-card p-6 border-[#ccff00]/20">
+                        <h3 className="text-lg font-bold mb-4 text-white flex items-center">
+                            <Sparkles className="w-4 h-4 mr-2 text-[#ccff00]" />
+                            Control Center
+                        </h3>
+
+                        {!project.generated_content ? (
+                            <button
+                                onClick={handleGenerate}
+                                disabled={generating}
+                                className="w-full bg-[#ccff00] text-black py-3 rounded-xl font-bold hover:bg-[#b3e600] disabled:opacity-50 transition-colors shadow-[0_0_20px_rgba(204,255,0,0.2)]"
+                            >
+                                {generating ? (
+                                    <span className="flex items-center justify-center">
+                                        <Loader className="animate-spin h-5 w-5 mr-2" />
+                                        Generating...
+                                    </span>
+                                ) : (
+                                    'Generate Content'
+                                )}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleGenerate}
+                                disabled={generating}
+                                className="w-full bg-white/5 text-white py-3 rounded-xl font-medium hover:bg-white/10 disabled:opacity-50 transition-colors border border-white/10"
+                            >
+                                <span className="flex items-center justify-center">
+                                    <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+                                    Regenerate All
+                                </span>
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Refinement Box */}
+                    {project.generated_content && !isEditing && (
+                        <div className="bento-card p-6">
+                            <h3 className="text-lg font-bold mb-4 text-white">Refine Artifact</h3>
+                            <textarea
+                                value={refinementPrompt}
+                                onChange={(e) => setRefinementPrompt(e.target.value)}
+                                placeholder="Enter instructions (e.g., 'Make it more formal', 'Expand section 2')..."
+                                rows={4}
+                                className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#00ffff]/50 mb-4 resize-none"
+                            />
+                            <button
+                                onClick={handleRefine}
+                                disabled={refining || !refinementPrompt.trim()}
+                                className="w-full bg-[#00ffff]/10 text-[#00ffff] border border-[#00ffff]/50 py-3 rounded-xl font-bold hover:bg-[#00ffff]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {refining ? (
+                                    <span className="flex items-center justify-center">
+                                        <Loader className="animate-spin h-4 w-4 mr-2" />
+                                        Refining...
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center justify-center">
+                                        <Sparkles className="h-4 w-4 mr-2" />
+                                        Apply Changes
+                                    </span>
+                                )}
+                            </button>
                         </div>
                     )}
 
-                    {error && (
-                        <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4 backdrop-blur-sm">
-                            <p className="text-red-300">{error}</p>
+                    {/* Status Box */}
+                    <div className="bento-card p-4">
+                        <div className="flex items-center justify-between text-xs font-mono text-gray-500 mb-2">
+                            <span>SYSTEM STATUS</span>
+                            <span className="text-[#ccff00] flex items-center">
+                                <div className="w-1.5 h-1.5 bg-[#ccff00] rounded-full mr-1 animate-pulse"></div>
+                                ONLINE
+                            </span>
                         </div>
-                    )}
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-xs text-gray-400">
+                                <span>Latency</span>
+                                <span>12ms</span>
+                            </div>
+                            <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                <div className="bg-[#ccff00] h-full w-[12%]"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    )
+    </div>
+)
 }

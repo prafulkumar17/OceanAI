@@ -1,94 +1,104 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Primary - Amber/Gold */
-  --primary-50: #fffbeb;
-  --primary-100: #fef3c7;
-  --primary-500: #f59e0b;
-  --primary-600: #d97706;
-  --primary-700: #b45309;
-  --primary-900: #78350f;
+  /* Digital Tactile Palette */
+  --bg-depth: #050505;
+  --bg-surface: #111111;
+  --accent-lime: #ccff00;
+  --accent-cyan: #00ffff;
+  --accent-magenta: #ff00ff;
 
-  /* Accent - Red/Orange */
-  --accent-400: #fb923c;
-  --accent-500: #f97316;
-  --accent-600: #ea580c;
-
-  /* Backgrounds - Dark/Black */
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #1a1a1a;
-  --bg-card: #262626;
-
-  /* Glass effect */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 193, 7, 0.1);
+  /* Glass */
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-surface: rgba(255, 255, 255, 0.03);
+  --glass-highlight: rgba(255, 255, 255, 0.08);
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-depth);
+  color: white;
+  overflow-x: hidden;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: -0.02em;
 }
 
-/* Custom Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Bento Grid Utilities */
+.bento-card {
+  background: var(--glass-surface);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.bento-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-@keyframes glow {
-
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
-  }
-
-  50% {
-    box-shadow: 0 0 30px rgba(245, 158, 11, 0.8);
-  }
+.bento-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-
-  100% {
-    background-position: 1000px 0;
-  }
+.bento-card:hover::before {
+  opacity: 1;
 }
 
+/* Specific Card Variants */
+.card-lime:hover {
+  border-color: var(--accent-lime);
+  box-shadow: 0 0 30px -10px rgba(204, 255, 0, 0.2);
+}
+
+.card-cyan:hover {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 30px -10px rgba(0, 255, 255, 0.2);
+}
+
+.card-magenta:hover {
+  border-color: var(--accent-magenta);
+  box-shadow: 0 0 30px -10px rgba(255, 0, 255, 0.2);
+}
+
+/* Typography Utilities */
+.text-gradient-lime {
+  background: linear-gradient(135deg, #ffffff 0%, var(--accent-lime) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-cyan {
+  background: linear-gradient(135deg, #ffffff 0%, var(--accent-cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Animations */
 @keyframes float {
 
   0%,
@@ -101,159 +111,59 @@ code {
   }
 }
 
-@keyframes pulse-glow {
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
 
-  0%,
-  100% {
-    opacity: 1;
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+@keyframes mesh-drift {
+  0% {
+    background-position: 0% 50%;
   }
 
   50% {
-    opacity: 0.8;
-    box-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
   }
 }
 
-/* Utility Classes */
-.animate-fadeIn {
-  animation: fadeIn 0.6s ease-out;
+.bg-mesh {
+  background: radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.15), transparent 50%),
+    radial-gradient(circle at 100% 0%, rgba(204, 255, 0, 0.1), transparent 40%),
+    radial-gradient(circle at 0% 100%, rgba(0, 255, 255, 0.1), transparent 40%);
+  filter: blur(60px);
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }
 
-.animate-slideUp {
-  animation: slideUp 0.8s ease-out;
+/* Noise Texture */
+.bg-noise {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  pointer-events: none;
 }
 
-.animate-glow {
-  animation: glow 2s ease-in-out infinite;
-}
-
-.animate-shimmer {
-  animation: shimmer 2s linear infinite;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* Glass Card */
-.glass-card {
-  background: rgba(26, 26, 26, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(245, 158, 11, 0.1);
-  border-radius: 1rem;
-  transition: all 0.3s ease;
-}
-
-.glass-card:hover {
-  background: rgba(26, 26, 26, 0.8);
-  border-color: rgba(245, 158, 11, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.2);
-  transform: translateY(-5px);
-}
-
-/* Gradient Text */
-.gradient-text {
-  background: linear-gradient(135deg, #fbbf24 0%, #f97316 50%, #dc2626 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Gradient Button */
-.gradient-button {
-  background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%);
-  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
-  transition: all 0.3s ease;
-}
-
-.gradient-button:hover {
-  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
-  box-shadow: 0 15px 35px rgba(245, 158, 11, 0.5);
-  transform: translateY(-2px) scale(1.02);
-}
-
-.gradient-button:active {
-  transform: translateY(0) scale(0.98);
-}
-
-/* Neon Border */
-.neon-border {
-  border: 2px solid transparent;
-  background: linear-gradient(var(--bg-secondary), var(--bg-secondary)) padding-box,
-    linear-gradient(135deg, #f59e0b, #f97316, #dc2626) border-box;
-  border-radius: 0.75rem;
-}
-
-/* Smooth Transitions */
-* {
-  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-/* Custom Scrollbar */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
-  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: var(--bg-depth);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #f59e0b, #dc2626);
+  background: #333;
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #fbbf24, #f97316);
-}
-
-/* Focus Styles */
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
-}
-
-/* Loading Spinner */
-.spinner {
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #f59e0b;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Particle Background */
-.particles {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.particle {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  background: rgba(245, 158, 11, 0.5);
-  border-radius: 50%;
-  animation: float 6s ease-in-out infinite;
+  background: #555;
 }

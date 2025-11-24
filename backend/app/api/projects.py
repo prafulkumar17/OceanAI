@@ -28,6 +28,17 @@ def create_project(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new project"""
+    # Guest users get mock project without database save
+    if getattr(current_user, 'is_guest', False):
+        return Project(
+            id=999999,  # Mock ID for guest
+            title=project.title,
+            topic=project.topic,
+            document_type=project.document_type,
+            owner_id=0,
+            generated_content=None
+        )
+    
     db_project = Project(
         title=project.title,
         topic=project.topic,
@@ -45,6 +56,10 @@ def get_projects(
     current_user: User = Depends(get_current_user)
 ):
     """Get all projects for current user"""
+    # Guest users always get empty list
+    if getattr(current_user, 'is_guest', False):
+        return []
+    
     projects = db.query(Project).filter(Project.owner_id == current_user.id).all()
     return projects
 
@@ -55,6 +70,19 @@ def get_project(
     current_user: User = Depends(get_current_user)
 ):
     """Get a specific project"""
+    # Guest users: return mock project for the guest ID
+    if getattr(current_user, 'is_guest', False):
+        if project_id == 999999:
+            return Project(
+                id=999999,
+                title="Guest Project",
+                topic="Sample Topic",
+                document_type="docx",
+                owner_id=0,
+                generated_content=None
+            )
+        raise HTTPException(status_code=404, detail="Project not found")
+    
     project = db.query(Project).filter(
         Project.id == project_id,
         Project.owner_id == current_user.id
@@ -72,6 +100,24 @@ async def generate_document(
     current_user: User = Depends(get_current_user)
 ):
     """Generate the complete document in one go"""
+    # Guest users: generate content but don't save to database
+    if getattr(current_user, 'is_guest', False):
+        try:
+            generator = DocumentGenerator()
+            # Use a mock topic for guest
+            content = await generator.generate_document("Sample Topic", DocumentType.DOCX)
+            
+            return Project(
+                id=999999,
+                title="Guest Project",
+                topic="Sample Topic",
+                document_type="docx",
+                owner_id=0,
+                generated_content=json.dumps(content)
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error generating document: {str(e)}")
+    
     project = db.query(Project).filter(
         Project.id == project_id,
         Project.owner_id == current_user.id
@@ -329,9 +375,13 @@ def get_pdf_preview(
             # Duplicate and populate content slides
             slides = content_data.get("slides", [])
             for i, slide_data in enumerate(slides):
-                insertion_index = content_slide_index + 1 + i
+                # Insert each new slide after the previous one to preserve order
+                insertion_index = content_slide_index + 1
                 new_slide_id = service.duplicate_slide(presentation_id, content_slide_id, insertion_index=insertion_index)
                 
+                # Update the index so next insertion goes after this slide
+                content_slide_index += 1
+
                 bullets = slide_data.get("bullets", [])
                 content_text = "\n".join(bullets) if bullets else ""
                 

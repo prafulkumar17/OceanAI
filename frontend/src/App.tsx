@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import ProjectsList from './pages/ProjectsList'
 import CreateProject from './pages/CreateProject'
 import ProjectDetail from './pages/ProjectDetail'
+import LandingPage from './pages/LandingPage'
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -18,17 +19,8 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Navigate to="/projects" replace />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
         <Route
           path="/projects"
           element={
@@ -40,7 +32,7 @@ function App() {
           }
         />
         <Route
-          path="/projects/new"
+          path="/create"
           element={
             <ProtectedRoute>
               <Layout>
@@ -65,5 +57,3 @@ function App() {
 }
 
 export default App
-
-

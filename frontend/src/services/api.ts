@@ -57,6 +57,14 @@ export const authApi = {
     return response.data
   },
 
+  guestLogin: async () => {
+    const response = await api.post('/api/auth/guest')
+    const { access_token } = response.data
+    localStorage.setItem('access_token', access_token)
+    localStorage.setItem('is_guest', 'true')
+    return response.data
+  },
+
   getCurrentUser: async () => {
     const response = await api.get('/api/auth/me')
     return response.data
@@ -64,6 +72,7 @@ export const authApi = {
 
   logout: () => {
     localStorage.removeItem('access_token')
+    localStorage.removeItem('is_guest')
   },
 }
 
