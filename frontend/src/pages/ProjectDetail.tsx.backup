@@ -1,0 +1,501 @@
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { projectApi } from '../services/api'
+import { Project } from '../types/project'
+import { ArrowLeft, Sparkles, Download, RefreshCw, Loader, Brain, FileText, PenTool, CheckCircle } from 'lucide-react'
+
+export default function ProjectDetail() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [project, setProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
+  const [refining, setRefining] = useState(false)
+  const [refinementPrompt, setRefinementPrompt] = useState('')
+  const [streamingContent, setStreamingContent] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedContent, setEditedContent] = useState<any>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (id) {
+      loadProject(parseInt(id))
+    }
+  }, [id])
+
+  const loadProject = async (projectId: number) => {
+    try {
+      setLoading(true)
+      const data = await projectApi.getProject(projectId)
+      setProject(data)
+      setError(null)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to load project')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGenerate = async () => {
+    if (!id) return
+
+    setGenerating(true)
+    setError(null)
+    setStreamingContent('')
+
+    const token = localStorage.getItem('access_token')
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    const eventSource = new EventSource(`${API_URL}/api/projects/${id}/generate/stream?token=${token}`)
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+
+        if (data.chunk) {
+          setStreamingContent(prev => prev + data.chunk)
+        } else if (data.status === 'complete') {
+          setProject(prev => prev ? { ...prev, generated_content: JSON.stringify(data.content) } : null)
+          setGenerating(false)
+          setStreamingContent('')
+          eventSource.close()
+        } else if (data.error) {
+          setError(data.error)
+          setGenerating(false)
+          eventSource.close()
+        }
+      } catch (e) {
+        console.error('Error parsing event data:', e)
+      }
+    }
+
+    eventSource.onerror = (err) => {
+      console.error('EventSource error:', err)
+      setError('Connection failed')
+      setGenerating(false)
+      eventSource.close()
+    }
+  }
+
+  const handleRefine = async () => {
+    if (!id || !refinementPrompt.trim()) return
+    try {
+      setRefining(true)
+      setError(null)
+      const updated = await projectApi.refineDocument(parseInt(id), refinementPrompt)
+      setProject(updated)
+      setRefinementPrompt('')
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to refine document')
+    } finally {
+      setRefining(false)
+    }
+  }
+
+  const handleExport = async () => {
+    if (!id) return
+    try {
+      const blob = await projectApi.exportDocument(parseInt(id))
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${project?.title || 'document'}.${project?.document_type || 'docx'}`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to export document')
+    }
+  }
+
+  const handleEdit = () => {
+    if (project?.generated_content) {
+      const content = JSON.parse(project.generated_content)
+      setEditedContent(content)
+      setIsEditing(true)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditedContent(null)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!id || !editedContent) return
+    try {
+      setSaving(true)
+      const updated = await projectApi.updateProjectContent(parseInt(id), editedContent)
+      setProject(updated)
+      setIsEditing(false)
+      setEditedContent(null)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to save changes')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Calculate progress step based on content length
+  const getProgressStep = (length: number) => {
+    if (length < 100) return 0 // Analyzing
+    if (length < 300) return 1 // Structuring
+    if (length < 1000) return 2 // Drafting
+    return 3 // Refining
+  }
+
+  const renderLoadingSteps = () => {
+    const currentStep = getProgressStep(streamingContent.length)
+    const steps = [
+      { label: 'Analyzing Topic', icon: Brain },
+      { label: 'Structuring Outline', icon: FileText },
+      { label: 'Drafting Content', icon: PenTool },
+      { label: 'Refining Details', icon: Sparkles },
+      { label: 'Finalizing', icon: CheckCircle },
+    ]
+
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto my-12">
+        <div className="text-center mb-8">
+          <h3 className="text-xl font-bold text-gray-900">Generating Your Document</h3>
+          <p className="text-gray-500 mt-2">OceanAI is crafting your content...</p>
+        </div>
+
+        <div className="space-y-6">
+          {steps.map((step, idx) => {
+            const isActive = idx === currentStep
+            const isCompleted = idx < currentStep
+
+            return (
+              <div key={idx} className={`flex items-center transition-all duration-500 ${isActive || isCompleted ? 'opacity-100' : 'opacity-40'}`}>
+                <div className={`
+                  flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center mr-4 border-2
+                  ${isActive ? 'border-primary-600 bg-primary-50 text-primary-600' : ''}
+                  ${isCompleted ? 'border-green-500 bg-green-50 text-green-500' : ''}
+                  ${!isActive && !isCompleted ? 'border-gray-200 bg-gray-50 text-gray-400' : ''}
+                `}>
+                  {isCompleted ? (
+                    <CheckCircle className="h-6 w-6" />
+                  ) : (
+                    <step.icon className={`h-5 w-5 ${isActive ? 'animate-pulse' : ''}`} />
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <h4 className={`font-medium ${isActive ? 'text-primary-700' : 'text-gray-900'}`}>
+                    {step.label}
+                  </h4>
+                  {isActive && (
+                    <div className="h-1.5 w-full bg-gray-100 rounded-full mt-2 overflow-hidden">
+                      <div className="h-full bg-primary-500 rounded-full animate-progress"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Optional: Show a sneak peek of the text being generated */}
+        <div className="mt-8 pt-6 border-t border-gray-100">
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Live Preview</p>
+          <div className="font-mono text-xs text-gray-500 h-12 overflow-hidden opacity-70">
+    }
+
+            if (!project?.generated_content) return null
+
+            try {
+      const content = isEditing ? editedContent : JSON.parse(project.generated_content)
+
+            if (project.document_type === 'docx' && content.sections) {
+        return (
+            <div className="space-y-6">
+              {content.sections.map((section: any, idx: number) => (
+                <div key={idx} className="border-l-4 border-primary-500 pl-4">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={section.title}
+                      onChange={(e) => {
+                        const newContent = { ...editedContent }
+                        newContent.sections[idx].title = e.target.value
+                        setEditedContent(newContent)
+                      }}
+                      className="text-xl font-semibold text-gray-900 mb-2 w-full border-b-2 border-primary-300 focus:outline-none focus:border-primary-600"
+                    />
+                  ) : (
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      {section.title}
+                    </h3>
+                  )}
+                  {section.content?.map((para: string, pIdx: number) => (
+                    isEditing ? (
+                      <textarea
+                        key={pIdx}
+                        value={para}
+                        onChange={(e) => {
+                          const newContent = { ...editedContent }
+                          newContent.sections[idx].content[pIdx] = e.target.value
+                          setEditedContent(newContent)
+                        }}
+                        rows={3}
+                        className="w-full text-gray-700 mb-3 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    ) : (
+                      <p key={pIdx} className="text-gray-700 mb-3">
+                        {para}
+                      </p>
+                    )
+                  ))}
+                </div>
+              ))}
+            </div>
+            )
+      }
+
+            if (project.document_type === 'pptx' && content.slides) {
+        return (
+            <div className="space-y-6">
+              {content.slides.map((slide: any, idx: number) => (
+                <div key={idx} className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={slide.title}
+                      onChange={(e) => {
+                        const newContent = { ...editedContent }
+                        newContent.slides[idx].title = e.target.value
+                        setEditedContent(newContent)
+                      }}
+                      className="text-xl font-semibold text-gray-900 mb-4 w-full border-b-2 border-primary-300 focus:outline-none focus:border-primary-600"
+                    />
+                  ) : (
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                      Slide {idx + 1}: {slide.title}
+                    </h3>
+                  )}
+                  <ul className="space-y-2">
+                    {slide.bullets?.map((bullet: string, bIdx: number) => (
+                      <li key={bIdx} className="flex items-start">
+                        <span className="text-primary-600 mr-2">•</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={bullet}
+                            onChange={(e) => {
+                              const newContent = { ...editedContent }
+                              newContent.slides[idx].bullets[bIdx] = e.target.value
+                              setEditedContent(newContent)
+                            }}
+                            className="flex-1 text-gray-700 border-b border-gray-300 focus:outline-none focus:border-primary-600"
+                          />
+                        ) : (
+                          <span className="text-gray-700">{bullet}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            )
+      }
+    } catch (e) {
+      return <div className="text-gray-500">Error parsing content</div>
+    }
+
+            return null
+  }
+
+            if (loading) {
+    return (
+            <div className="flex justify-center items-center h-64">
+              <Loader className="h-8 w-8 text-primary-600 animate-spin" />
+            </div>
+            )
+  }
+
+            if (error && !project) {
+    return (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800">{error}</p>
+              <button
+                onClick={() => navigate('/projects')}
+                className="mt-4 text-primary-600 hover:text-primary-700"
+              >
+                ← Back to Projects
+              </button>
+            </div>
+            )
+  }
+
+            if (!project) {
+    return <div>Project not found</div>
+  }
+
+            return (
+            <div>
+              <button
+                onClick={() => navigate('/projects')}
+                className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Projects
+              </button>
+
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-6">
+                  <h1 className="text-2xl font-bold text-white mb-2">{project.title}</h1>
+                  <p className="text-primary-100">Topic: {project.topic}</p>
+                  <span className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-sm text-white">
+                    {project.document_type.toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                  {!project.generated_content ? (
+                    <button
+                      onClick={handleGenerate}
+                      disabled={generating}
+                      className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader className="h-4 w-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Generate Document
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={handleExport}
+                        className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </button>
+
+                      {!isEditing ? (
+                        <>
+                          <button
+                            onClick={handleEdit}
+                            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                          >
+                            <PenTool className="h-4 w-4 mr-2" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={handleGenerate}
+                            disabled={generating}
+                            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                          >
+                            {generating ? (
+                              <>
+                                <Loader className="h-4 w-4 mr-2 animate-spin" />
+                                Regenerating...
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Regenerate
+                              </>
+                            )}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={handleSaveEdit}
+                            disabled={saving}
+                            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            {saving ? (
+                              <>
+                                <Loader className="h-4 w-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Save
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="p-6">
+                  {project.generated_content || generating ? (
+                    <>
+                      <div className="mb-6">{renderContent()}</div>
+
+                      {/* Refinement Section */}
+                      <div className="border-t border-gray-200 pt-6 mt-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                          Refine Content
+                        </h3>
+                        <div className="space-y-3">
+                          <textarea
+                            value={refinementPrompt}
+                            onChange={(e) => setRefinementPrompt(e.target.value)}
+                            placeholder="Enter your refinement instructions (e.g., 'Make it more formal', 'Add more details about X', 'Simplify the language')"
+                            rows={3}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          />
+                          <button
+                            onClick={handleRefine}
+                            disabled={refining || !refinementPrompt.trim()}
+                            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {refining ? (
+                              <>
+                                <Loader className="h-4 w-4 mr-2 animate-spin" />
+                                Refining...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Refine Content
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <Sparkles className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <p>No content generated yet. Click "Generate Document" to create your document.</p>
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-red-800">{error}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            )
+}
+
