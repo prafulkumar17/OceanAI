@@ -505,238 +505,268 @@ export default function ProjectDetail() {
                         className="flex-grow w-full p-6 font-mono text-sm bg-[#050505] text-gray-300 border border-white/10 resize-none focus:outline-none focus:border-[#ccff00]/50 rounded-xl"
                         spellCheck={false}
                     />
-                                        <div className="flex justify-end space-x-4 mt-4">
-                                            <button
-                                                onClick={() => setIsEditing(false)}
-                                                className="px-6 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                onClick={handleSaveEdit}
-                                                disabled={saving}
-                                                className="bg-[#00ffff] text-black px-6 py-2 rounded-lg font-bold hover:bg-[#00e6e6] transition-colors flex items-center"
-                                            >
-                                                {saving ? <Loader className="animate-spin h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                                                Save Changes
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            }
-                    
-                    // Render DOCX Content (Preview Mode)
-                    if (project?.document_type === 'docx' && typeof streamedContent === 'object' && streamedContent !== null) {
-                        const content = streamedContent as any
-                        if (content.sections && Array.isArray(content.sections)) {
-                            return (
-                                <div className="prose prose-invert max-w-none p-8 bg-[#111] border border-white/10 rounded-xl h-full overflow-y-auto custom-scrollbar">
-                                    {content.sections.map((section: any, index: number) => (
-                                        <div key={index} className="mb-10 last:mb-0 animate-slideUp" style={{ animationDelay: `${index * 0.1}s` }}>
-                                            <h2 className="text-2xl font-bold mb-4 text-[#ccff00] border-b border-white/10 pb-2">
-                                                {section.title}
-                                            </h2>
-                                            <div className="space-y-4 text-gray-300 leading-relaxed">
-                                                {section.content.map((paragraph: string, pIndex: number) => (
-                                                    <p key={pIndex}>{paragraph}</p>
-                                                ))}
-                                            </div>
-                                        </div>
+                    <div className="flex justify-end space-x-4 mt-4">
+                        <button
+                            onClick={() => setIsEditing(false)}
+                            className="px-6 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSaveEdit}
+                            disabled={saving}
+                            className="bg-[#00ffff] text-black px-6 py-2 rounded-lg font-bold hover:bg-[#00e6e6] transition-colors flex items-center"
+                        >
+                            {saving ? <Loader className="animate-spin h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // PPTX Preview - show loading if PDF not ready yet
+        if (project?.document_type === 'pptx' && project.generated_content) {
+            if (pdfPreviewUrl) {
+                return (
+                    <div className="relative h-full w-full bg-[#111] border border-white/10 rounded-xl overflow-hidden group">
+                        {loadingPdf && (
+                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+                                <Loader className="h-10 w-10 text-[#ff00ff] animate-spin mb-4" />
+                                <p className="font-bold text-gray-300">Updating Preview...</p>
+                            </div>
+                        )}
+                        <iframe
+                            src={pdfPreviewUrl}
+                            className={`w-full h-full transition-opacity duration-300 ${loadingPdf ? 'opacity-50' : 'opacity-100'}`}
+                            title="PDF Preview"
+                        />
+                    </div>
+                )
+            } else {
+                // Show loading while PDF is being generated
+                return (
+                    <div className="relative h-full w-full bg-[#111] border border-white/10 rounded-xl overflow-hidden flex flex-col items-center justify-center">
+                        <Loader className="h-10 w-10 text-[#ff00ff] animate-spin mb-4" />
+                        <p className="font-bold text-gray-300">Generating Preview...</p>
+                        <p className="text-sm text-gray-500 mt-2">This may take a few seconds</p>
+                    </div>
+                )
+            }
+        }
+
+        // Render DOCX Content (Preview Mode)
+        if (project?.document_type === 'docx' && typeof streamedContent === 'object' && streamedContent !== null) {
+            const content = streamedContent as any
+            if (content.sections && Array.isArray(content.sections)) {
+                return (
+                    <div className="prose prose-invert max-w-none p-8 bg-[#111] border border-white/10 rounded-xl h-full overflow-y-auto custom-scrollbar">
+                        {content.sections.map((section: any, index: number) => (
+                            <div key={index} className="mb-10 last:mb-0 animate-slideUp" style={{ animationDelay: `${index * 0.1}s` }}>
+                                <h2 className="text-2xl font-bold mb-4 text-[#ccff00] border-b border-white/10 pb-2">
+                                    {section.title}
+                                </h2>
+                                <div className="space-y-4 text-gray-300 leading-relaxed">
+                                    {section.content.map((paragraph: string, pIndex: number) => (
+                                        <p key={pIndex}>{paragraph}</p>
                                     ))}
                                 </div>
-                            )
-                        }
-                    }
-return (
-    <div className="prose prose-invert max-w-none p-8 bg-[#111] border border-white/10 rounded-xl h-full overflow-y-auto font-mono text-sm text-gray-300">
-        <pre className="whitespace-pre-wrap font-mono">
-            {typeof streamedContent === 'string' ? streamedContent : JSON.stringify(streamedContent, null, 2)}
-        </pre>
-    </div>
-)
+                            </div>
+                        ))}
+                    </div>
+                )
+            }
+        }
+        return (
+            <div className="prose prose-invert max-w-none p-8 bg-[#111] border border-white/10 rounded-xl h-full overflow-y-auto font-mono text-sm text-gray-300">
+                <pre className="whitespace-pre-wrap font-mono">
+                    {typeof streamedContent === 'string' ? streamedContent : JSON.stringify(streamedContent, null, 2)}
+                </pre>
+            </div>
+        )
     }
 
-if (loading) {
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="animate-spin h-12 w-12 border-4 border-[#ccff00] border-t-transparent rounded-full"></div>
+            </div>
+        )
+    }
+
+    if (!project) return <div>Project not found</div>
+
     return (
-        <div className="flex justify-center items-center h-screen">
-            <div className="animate-spin h-12 w-12 border-4 border-[#ccff00] border-t-transparent rounded-full"></div>
+        <div className="min-h-screen pb-20">
+            {/* Top Bar */}
+            <div className="bg-[#050505]/80 backdrop-blur-xl border-b border-white/10 sticky top-16 z-40 px-6 py-4 flex justify-between items-center">
+                <div className="flex items-center space-x-4">
+                    <button onClick={() => navigate('/projects')} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+                        <ArrowLeft className="h-5 w-5" />
+                    </button>
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight text-white">{project.title}</h1>
+                        <div className="flex items-center space-x-2 text-sm text-gray-500">
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${project.document_type === 'docx' ? 'bg-blue-500/10 text-blue-400' : 'bg-orange-500/10 text-orange-400'
+                                }`}>
+                                {project.document_type.toUpperCase()}
+                            </span>
+                            <span>•</span>
+                            <span>{project.topic}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                    <button
+                        onClick={handleExport}
+                        disabled={!project.generated_content}
+                        className="bg-[#ccff00] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#b3e600] disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors shadow-[0_0_15px_rgba(204,255,0,0.2)]"
+                    >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                    </button>
+
+                    <button
+                        onClick={handleRevert}
+                        disabled={contentHistory.length === 0}
+                        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors"
+                        title="Revert to previous version"
+                    >
+                        <Undo className="h-5 w-5" />
+                    </button>
+
+                    {!isEditing && (
+                        <button
+                            onClick={handleEdit}
+                            disabled={!project.generated_content}
+                            className="bg-white/10 text-white px-4 py-2 rounded-lg font-medium hover:bg-white/20 disabled:opacity-50 transition-colors flex items-center"
+                        >
+                            <PenTool className="h-4 w-4 mr-2" />
+                            Edit
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {error && (
+                    <div className="mb-8 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center animate-fadeIn">
+                        <span className="mr-2">⚠️</span> {error}
+                    </div>
+                )}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
+
+                    {/* Main Content / Preview Area */}
+                    <div className="lg:col-span-2 flex flex-col h-full">
+                        <div className="flex justify-between items-center mb-4 px-1">
+                            <div className="flex items-center text-sm font-medium text-gray-400">
+                                {project.document_type === 'pptx' ? <MonitorPlay className="h-4 w-4 mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
+                                {isEditing ? 'Editor Mode' : 'Preview Mode'}
+                            </div>
+                            <div className="flex space-x-2">
+                                <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
+                                <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                                <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                            </div>
+                        </div>
+
+                        <div className="flex-grow">
+                            {renderContent()}
+                        </div>
+                    </div>
+
+                    {/* Controls Sidebar */}
+                    <div className="space-y-6">
+                        {/* Generate / Regenerate Box */}
+                        <div className="bento-card p-6 border-[#ccff00]/20">
+                            <h3 className="text-lg font-bold mb-4 text-white flex items-center">
+                                <Sparkles className="w-4 h-4 mr-2 text-[#ccff00]" />
+                                Control Center
+                            </h3>
+
+                            {!project.generated_content ? (
+                                <button
+                                    onClick={handleGenerate}
+                                    disabled={generating}
+                                    className="w-full bg-[#ccff00] text-black py-3 rounded-xl font-bold hover:bg-[#b3e600] disabled:opacity-50 transition-colors shadow-[0_0_20px_rgba(204,255,0,0.2)]"
+                                >
+                                    {generating ? (
+                                        <span className="flex items-center justify-center">
+                                            <Loader className="animate-spin h-5 w-5 mr-2" />
+                                            Generating...
+                                        </span>
+                                    ) : (
+                                        'Generate Content'
+                                    )}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleGenerate}
+                                    disabled={generating}
+                                    className="w-full bg-white/5 text-white py-3 rounded-xl font-medium hover:bg-white/10 disabled:opacity-50 transition-colors border border-white/10"
+                                >
+                                    <span className="flex items-center justify-center">
+                                        <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+                                        Regenerate All
+                                    </span>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Refinement Box */}
+                        {project.generated_content && !isEditing && (
+                            <div className="bento-card p-6">
+                                <h3 className="text-lg font-bold mb-4 text-white">Refine Artifact</h3>
+                                <textarea
+                                    value={refinementPrompt}
+                                    onChange={(e) => setRefinementPrompt(e.target.value)}
+                                    placeholder="Enter instructions (e.g., 'Make it more formal', 'Expand section 2')..."
+                                    rows={4}
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#00ffff]/50 mb-4 resize-none"
+                                />
+                                <button
+                                    onClick={handleRefine}
+                                    disabled={refining || !refinementPrompt.trim()}
+                                    className="w-full bg-[#00ffff]/10 text-[#00ffff] border border-[#00ffff]/50 py-3 rounded-xl font-bold hover:bg-[#00ffff]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {refining ? (
+                                        <span className="flex items-center justify-center">
+                                            <Loader className="animate-spin h-4 w-4 mr-2" />
+                                            Refining...
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center justify-center">
+                                            <Sparkles className="h-4 w-4 mr-2" />
+                                            Apply Changes
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Status Box */}
+                        <div className="bento-card p-4">
+                            <div className="flex items-center justify-between text-xs font-mono text-gray-500 mb-2">
+                                <span>SYSTEM STATUS</span>
+                                <span className="text-[#ccff00] flex items-center">
+                                    <div className="w-1.5 h-1.5 bg-[#ccff00] rounded-full mr-1 animate-pulse"></div>
+                                    ONLINE
+                                </span>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs text-gray-400">
+                                    <span>Latency</span>
+                                    <span>12ms</span>
+                                </div>
+                                <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                    <div className="bg-[#ccff00] h-full w-[12%]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     )
-}
-
-if (!project) return <div>Project not found</div>
-
-return (
-    <div className="min-h-screen pb-20">
-        {/* Top Bar */}
-        <div className="bg-[#050505]/80 backdrop-blur-xl border-b border-white/10 sticky top-16 z-40 px-6 py-4 flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-                <button onClick={() => navigate('/projects')} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
-                    <ArrowLeft className="h-5 w-5" />
-                </button>
-                <div>
-                    <h1 className="text-xl font-bold tracking-tight text-white">{project.title}</h1>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${project.document_type === 'docx' ? 'bg-blue-500/10 text-blue-400' : 'bg-orange-500/10 text-orange-400'
-                            }`}>
-                            {project.document_type.toUpperCase()}
-                        </span>
-                        <span>•</span>
-                        <span>{project.topic}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-                <button
-                    onClick={handleExport}
-                    disabled={!project.generated_content}
-                    className="bg-[#ccff00] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#b3e600] disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors shadow-[0_0_15px_rgba(204,255,0,0.2)]"
-                >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                </button>
-
-                <button
-                    onClick={handleRevert}
-                    disabled={contentHistory.length === 0}
-                    className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors"
-                    title="Revert to previous version"
-                >
-                    <Undo className="h-5 w-5" />
-                </button>
-
-                {!isEditing && (
-                    <button
-                        onClick={handleEdit}
-                        disabled={!project.generated_content}
-                        className="bg-white/10 text-white px-4 py-2 rounded-lg font-medium hover:bg-white/20 disabled:opacity-50 transition-colors flex items-center"
-                    >
-                        <PenTool className="h-4 w-4 mr-2" />
-                        Edit
-                    </button>
-                )}
-            </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {error && (
-                <div className="mb-8 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center animate-fadeIn">
-                    <span className="mr-2">⚠️</span> {error}
-                </div>
-            )}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
-
-                {/* Main Content / Preview Area */}
-                <div className="lg:col-span-2 flex flex-col h-full">
-                    <div className="flex justify-between items-center mb-4 px-1">
-                        <div className="flex items-center text-sm font-medium text-gray-400">
-                            {project.document_type === 'pptx' ? <MonitorPlay className="h-4 w-4 mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
-                            {isEditing ? 'Editor Mode' : 'Preview Mode'}
-                        </div>
-                        <div className="flex space-x-2">
-                            <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
-                            <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
-                            <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
-                        </div>
-                    </div>
-
-                    <div className="flex-grow">
-                        {renderContent()}
-                    </div>
-                </div>
-
-                {/* Controls Sidebar */}
-                <div className="space-y-6">
-                    {/* Generate / Regenerate Box */}
-                    <div className="bento-card p-6 border-[#ccff00]/20">
-                        <h3 className="text-lg font-bold mb-4 text-white flex items-center">
-                            <Sparkles className="w-4 h-4 mr-2 text-[#ccff00]" />
-                            Control Center
-                        </h3>
-
-                        {!project.generated_content ? (
-                            <button
-                                onClick={handleGenerate}
-                                disabled={generating}
-                                className="w-full bg-[#ccff00] text-black py-3 rounded-xl font-bold hover:bg-[#b3e600] disabled:opacity-50 transition-colors shadow-[0_0_20px_rgba(204,255,0,0.2)]"
-                            >
-                                {generating ? (
-                                    <span className="flex items-center justify-center">
-                                        <Loader className="animate-spin h-5 w-5 mr-2" />
-                                        Generating...
-                                    </span>
-                                ) : (
-                                    'Generate Content'
-                                )}
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleGenerate}
-                                disabled={generating}
-                                className="w-full bg-white/5 text-white py-3 rounded-xl font-medium hover:bg-white/10 disabled:opacity-50 transition-colors border border-white/10"
-                            >
-                                <span className="flex items-center justify-center">
-                                    <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
-                                    Regenerate All
-                                </span>
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Refinement Box */}
-                    {project.generated_content && !isEditing && (
-                        <div className="bento-card p-6">
-                            <h3 className="text-lg font-bold mb-4 text-white">Refine Artifact</h3>
-                            <textarea
-                                value={refinementPrompt}
-                                onChange={(e) => setRefinementPrompt(e.target.value)}
-                                placeholder="Enter instructions (e.g., 'Make it more formal', 'Expand section 2')..."
-                                rows={4}
-                                className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#00ffff]/50 mb-4 resize-none"
-                            />
-                            <button
-                                onClick={handleRefine}
-                                disabled={refining || !refinementPrompt.trim()}
-                                className="w-full bg-[#00ffff]/10 text-[#00ffff] border border-[#00ffff]/50 py-3 rounded-xl font-bold hover:bg-[#00ffff]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                {refining ? (
-                                    <span className="flex items-center justify-center">
-                                        <Loader className="animate-spin h-4 w-4 mr-2" />
-                                        Refining...
-                                    </span>
-                                ) : (
-                                    <span className="flex items-center justify-center">
-                                        <Sparkles className="h-4 w-4 mr-2" />
-                                        Apply Changes
-                                    </span>
-                                )}
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Status Box */}
-                    <div className="bento-card p-4">
-                        <div className="flex items-center justify-between text-xs font-mono text-gray-500 mb-2">
-                            <span>SYSTEM STATUS</span>
-                            <span className="text-[#ccff00] flex items-center">
-                                <div className="w-1.5 h-1.5 bg-[#ccff00] rounded-full mr-1 animate-pulse"></div>
-                                ONLINE
-                            </span>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-xs text-gray-400">
-                                <span>Latency</span>
-                                <span>12ms</span>
-                            </div>
-                            <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                                <div className="bg-[#ccff00] h-full w-[12%]"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-)
 }

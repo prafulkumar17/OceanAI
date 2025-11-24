@@ -375,12 +375,10 @@ def get_pdf_preview(
             # Duplicate and populate content slides
             slides = content_data.get("slides", [])
             for i, slide_data in enumerate(slides):
-                # Insert each new slide after the previous one to preserve order
-                insertion_index = content_slide_index + 1
+                # Insert each new slide right after the content template slide
+                # This ensures slides appear in the correct order (1, 2, 3, ...)
+                insertion_index = content_slide_index + 1 + i
                 new_slide_id = service.duplicate_slide(presentation_id, content_slide_id, insertion_index=insertion_index)
-                
-                # Update the index so next insertion goes after this slide
-                content_slide_index += 1
 
                 bullets = slide_data.get("bullets", [])
                 content_text = "\n".join(bullets) if bullets else ""
