@@ -35,7 +35,8 @@ Thumbs.db
 # Uploads
 uploads/
 backend/uploads/
-
+backend/token.json
+backend/oauth_client.json
 # Node
 node_modules/
 npm-debug.log*
