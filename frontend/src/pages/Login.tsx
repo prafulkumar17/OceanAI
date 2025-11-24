@@ -51,7 +51,7 @@ export default function Login() {
       <div className="bg-noise"></div>
 
       {/* Floating Elements */}
-      <div className="absolute top-20 left-20 w-64 h-64 bg-[#ccff00] opacity-5 blur-[100px] rounded-full animate-float"></div>
+      <div className="absolute top-20 left-20 w-64 h-64 bg-[#87CEEB] opacity-5 blur-[100px] rounded-full animate-float"></div>
       <div className="absolute bottom-20 right-20 w-64 h-64 bg-[#00ffff] opacity-5 blur-[100px] rounded-full animate-float" style={{ animationDelay: '2s' }}></div>
 
       <div className="max-w-md w-full relative z-10">
@@ -59,7 +59,7 @@ export default function Login() {
         <div className="bento-card p-8 border border-white/10 shadow-2xl backdrop-blur-xl bg-black/40">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-[#ccff00] rounded-xl mb-4 shadow-[0_0_20px_rgba(204,255,0,0.3)]">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-[#87CEEB] rounded-xl mb-4 shadow-[0_0_20px_rgba(135,206,235,0.3)]">
               <span className="font-bold text-black text-2xl">O</span>
             </div>
             <h2 className="text-3xl font-bold mb-2 text-white">
@@ -89,7 +89,7 @@ export default function Login() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#ccff00]/50 focus:ring-1 focus:ring-[#ccff00]/50 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all"
                   placeholder="John Doe"
                 />
               </div>
@@ -104,7 +104,7 @@ export default function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#ccff00]/50 focus:ring-1 focus:ring-[#ccff00]/50 transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all"
                 placeholder="user@oceanai.app"
               />
             </div>
@@ -118,7 +118,7 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#ccff00]/50 focus:ring-1 focus:ring-[#ccff00]/50 transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all"
                 placeholder="••••••••"
               />
             </div>
@@ -126,7 +126,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#ccff00] text-black py-3 rounded-xl font-bold hover:bg-[#b3e600] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_20px_rgba(204,255,0,0.2)] hover:shadow-[0_0_30px_rgba(204,255,0,0.4)] group"
+              className="w-full bg-[#87CEEB] text-black py-3 rounded-xl font-bold hover:bg-[#6BB6D6] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_20px_rgba(135,206,235,0.2)] hover:shadow-[0_0_30px_rgba(135,206,235,0.4)] group"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
@@ -167,7 +167,7 @@ export default function Login() {
           <div className="mt-8 text-center pt-6 border-t border-white/5">
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-gray-400 hover:text-[#ccff00] transition-colors"
+              className="text-sm text-gray-400 hover:text-[#87CEEB] transition-colors"
             >
               {isLogin
                 ? "Don't have an account? Register"

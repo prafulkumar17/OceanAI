@@ -29,7 +29,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-3 group">
-              <div className="w-8 h-8 bg-[#ccff00] rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <div className="w-8 h-8 bg-[#87CEEB] rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <span className="font-bold text-black text-xl">O</span>
               </div>
               <h1 className="text-xl font-bold tracking-tight">OceanAI</h1>
@@ -45,7 +45,7 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 to="/create"
                 className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive('/create')
-                  ? 'bg-[#ccff00] text-black shadow-[0_0_15px_rgba(204,255,0,0.3)]'
+                  ? 'bg-[#87CEEB] text-black shadow-[0_0_15px_rgba(135,206,235,0.3)]'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
               >

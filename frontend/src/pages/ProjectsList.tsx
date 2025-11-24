@@ -45,7 +45,7 @@ export default function ProjectsList() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin h-12 w-12 border-4 border-[#ccff00] border-t-transparent rounded-full"></div>
+        <div className="animate-spin h-12 w-12 border-4 border-[#87CEEB] border-t-transparent rounded-full"></div>
       </div>
     )
   }
@@ -54,10 +54,10 @@ export default function ProjectsList() {
     <div className="space-y-12">
       {/* Hero Section */}
       <div className="bento-card p-10 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#ccff00] opacity-5 blur-[100px] rounded-full group-hover:opacity-10 transition-opacity"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#87CEEB] opacity-5 blur-[100px] rounded-full group-hover:opacity-10 transition-opacity"></div>
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <div className="inline-flex items-center px-3 py-1 rounded-full border border-[#ccff00]/30 bg-[#ccff00]/10 text-[#ccff00] text-xs font-bold mb-4">
+            <div className="inline-flex items-center px-3 py-1 rounded-full border border-[#87CEEB]/30 bg-[#87CEEB]/10 text-[#87CEEB] text-xs font-bold mb-4">
               <Sparkles className="w-3 h-3 mr-2" />
               DASHBOARD
             </div>
@@ -71,7 +71,7 @@ export default function ProjectsList() {
 
           <Link
             to="/create"
-            className="bg-[#ccff00] text-black px-8 py-4 rounded-2xl font-bold text-lg hover:bg-[#b3e600] hover:scale-105 transition-all shadow-[0_0_20px_rgba(204,255,0,0.2)] flex items-center group"
+            className="bg-[#87CEEB] text-black px-8 py-4 rounded-2xl font-bold text-lg hover:bg-[#6BB6D6] hover:scale-105 transition-all shadow-[0_0_20px_rgba(135,206,235,0.2)] flex items-center group"
           >
             <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform" />
             New Project
@@ -89,7 +89,7 @@ export default function ProjectsList() {
           placeholder="Search archives..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-[#ccff00]/50 focus:ring-1 focus:ring-[#ccff00]/50 transition-all"
+          className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all"
         />
       </div>
 
@@ -127,7 +127,7 @@ export default function ProjectsList() {
           <p className="text-gray-500 mb-8">The archives are empty. Initialize a new project.</p>
           <Link
             to="/create"
-            className="inline-flex items-center text-[#ccff00] hover:text-white font-bold transition-colors"
+            className="inline-flex items-center text-[#87CEEB] hover:text-white font-bold transition-colors"
           >
             Create Project <ArrowRight className="ml-2 w-4 h-4" />
           </Link>
@@ -138,7 +138,7 @@ export default function ProjectsList() {
             <Link
               key={project.id}
               to={`/projects/${project.id}`}
-              className="bento-card p-6 group flex flex-col h-full hover:border-[#ccff00]/30"
+              className="bento-card p-6 group flex flex-col h-full hover:border-[#87CEEB]/30"
             >
               <div className="flex justify-between items-start mb-6">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${project.document_type === 'docx'
@@ -155,7 +155,7 @@ export default function ProjectsList() {
                 </button>
               </div>
 
-              <h3 className="text-xl font-bold mb-2 group-hover:text-[#ccff00] transition-colors line-clamp-1">
+              <h3 className="text-xl font-bold mb-2 group-hover:text-[#87CEEB] transition-colors line-clamp-1">
                 {project.title}
               </h3>
 
@@ -168,7 +168,7 @@ export default function ProjectsList() {
                   <Clock className="h-3 w-3 mr-1" />
                   {new Date(project.created_at).toLocaleDateString()}
                 </div>
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[#ccff00] group-hover:text-black transition-all">
+                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[#87CEEB] group-hover:text-black transition-all">
                   <ArrowUpRight className="h-4 w-4" />
                 </div>
               </div>

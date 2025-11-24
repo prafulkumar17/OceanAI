@@ -23,7 +23,7 @@ export default function LandingPage() {
             <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
                 <div className="max-w-7xl mx-auto flex justify-between items-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-full px-6 py-3">
                     <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-[#ccff00] rounded-lg flex items-center justify-center">
+                        <div className="w-8 h-8 bg-[#87CEEB] rounded-lg flex items-center justify-center">
                             <span className="font-bold text-black text-xl">O</span>
                         </div>
                         <span className="font-bold text-xl tracking-tight">OceanAI</span>
@@ -53,9 +53,9 @@ export default function LandingPage() {
                 <section className="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto md:h-[600px]">
                     {/* Main Value Prop */}
                     <div className="md:col-span-7 bento-card p-10 flex flex-col justify-center relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#ccff00] opacity-10 blur-[80px] rounded-full group-hover:opacity-20 transition-opacity"></div>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#87CEEB] opacity-10 blur-[80px] rounded-full group-hover:opacity-20 transition-opacity"></div>
                         <div className="relative z-10">
-                            <div className="inline-flex items-center px-3 py-1 rounded-full border border-[#ccff00]/30 bg-[#ccff00]/10 text-[#ccff00] text-xs font-bold mb-6">
+                            <div className="inline-flex items-center px-3 py-1 rounded-full border border-[#87CEEB]/30 bg-[#87CEEB]/10 text-[#87CEEB] text-xs font-bold mb-6">
                                 <Sparkles className="w-3 h-3 mr-2" />
                                 V2.0 NOW LIVE
                             </div>
@@ -69,7 +69,7 @@ export default function LandingPage() {
                             <div className="flex items-center space-x-4">
                                 <Link
                                     to="/login"
-                                    className="bg-[#ccff00] text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-[#b3e600] transition-colors flex items-center"
+                                    className="bg-[#87CEEB] text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-[#6BB6D6] transition-colors flex items-center"
                                 >
                                     Start Generating
                                     <ArrowRight className="ml-2 w-5 h-5" />
@@ -154,7 +154,7 @@ export default function LandingPage() {
 
                     {/* Small Card 1 */}
                     <div className="bento-card p-6 flex flex-col justify-between group hover:bg-white/5">
-                        <Zap className="w-8 h-8 text-[#ccff00]" />
+                        <Zap className="w-8 h-8 text-[#87CEEB]" />
                         <div>
                             <h4 className="text-xl font-bold">Lightning Fast</h4>
                             <p className="text-gray-400 text-sm">Generates in seconds.</p>
@@ -206,20 +206,20 @@ export default function LandingPage() {
                         </Link>
                     </div>
 
-                    <div className="bento-card p-10 flex flex-col border-[#ccff00]/50 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 bg-[#ccff00] text-black text-xs font-bold px-3 py-1 rounded-bl-xl">
+                    <div className="bento-card p-10 flex flex-col border-[#87CEEB]/50 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 bg-[#87CEEB] text-black text-xs font-bold px-3 py-1 rounded-bl-xl">
                             BEST VALUE
                         </div>
-                        <h3 className="text-2xl font-bold mb-2 text-[#ccff00]">Pro Dork</h3>
+                        <h3 className="text-2xl font-bold mb-2 text-[#87CEEB]">Pro Dork</h3>
                         <div className="text-4xl font-bold mb-6">$19<span className="text-lg text-gray-500 font-normal">/mo</span></div>
                         <ul className="space-y-4 mb-8 flex-grow">
                             {['Unlimited Documents', 'Priority Processing', 'Advanced Refinement', 'All Formats'].map((feat) => (
                                 <li key={feat} className="flex items-center text-white">
-                                    <Check className="w-5 h-5 mr-3 text-[#ccff00]" /> {feat}
+                                    <Check className="w-5 h-5 mr-3 text-[#87CEEB]" /> {feat}
                                 </li>
                             ))}
                         </ul>
-                        <Link to="/login" className="w-full py-3 rounded-xl bg-[#ccff00] text-black text-center font-bold hover:bg-[#b3e600] transition-colors shadow-[0_0_20px_rgba(204,255,0,0.3)]">
+                        <Link to="/login" className="w-full py-3 rounded-xl bg-[#87CEEB] text-black text-center font-bold hover:bg-[#6BB6D6] transition-colors shadow-[0_0_20px_rgba(135,206,235,0.3)]">
                             Go Pro
                         </Link>
                     </div>
@@ -227,9 +227,9 @@ export default function LandingPage() {
 
                 {/* 6. Footer */}
                 <section className="bento-card p-12 md:p-20 text-center relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#ccff00]/10 via-transparent to-[#00ffff]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#87CEEB]/10 via-transparent to-[#00ffff]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                     <h2 className="text-4xl md:text-6xl font-bold mb-8 relative z-10">
-                        Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ccff00] to-[#00ffff]">Disrupt?</span>
+                        Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#87CEEB] to-[#00ffff]">Disrupt?</span>
                     </h2>
                     <Link
                         to="/login"

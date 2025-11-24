@@ -341,12 +341,12 @@ export default function ProjectDetail() {
                                     </button>
 
                                     <div className="mb-4">
-                                        <label className="text-xs font-bold text-[#ccff00] uppercase tracking-wider mb-2 block">Section Title</label>
+                                        <label className="text-xs font-bold text-[#87CEEB] uppercase tracking-wider mb-2 block">Section Title</label>
                                         <input
                                             type="text"
                                             value={section.title || ''}
                                             onChange={(e) => updateSectionTitle(sIndex, e.target.value)}
-                                            className="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-lg font-bold text-white focus:border-[#ccff00] focus:outline-none transition-colors"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-lg font-bold text-white focus:border-[#87CEEB] focus:outline-none transition-colors"
                                         />
                                     </div>
 
@@ -380,7 +380,7 @@ export default function ProjectDetail() {
 
                             <button
                                 onClick={addSection}
-                                className="w-full py-4 border border-dashed border-[#ccff00]/30 rounded-xl text-[#ccff00] font-bold hover:bg-[#ccff00]/10 transition-all flex items-center justify-center"
+                                className="w-full py-4 border border-dashed border-[#87CEEB]/30 rounded-xl text-[#87CEEB] font-bold hover:bg-[#87CEEB]/10 transition-all flex items-center justify-center"
                             >
                                 <Plus className="w-5 h-5 mr-2" /> Add New Section
                             </button>
@@ -502,7 +502,7 @@ export default function ProjectDetail() {
                     <textarea
                         value={editableContent}
                         onChange={(e) => setEditableContent(e.target.value)}
-                        className="flex-grow w-full p-6 font-mono text-sm bg-[#050505] text-gray-300 border border-white/10 resize-none focus:outline-none focus:border-[#ccff00]/50 rounded-xl"
+                        className="flex-grow w-full p-6 font-mono text-sm bg-[#050505] text-gray-300 border border-white/10 resize-none focus:outline-none focus:border-[#87CEEB]/50 rounded-xl"
                         spellCheck={false}
                     />
                     <div className="flex justify-end space-x-4 mt-4">
@@ -563,7 +563,7 @@ export default function ProjectDetail() {
                     <div className="prose prose-invert max-w-none p-8 bg-[#111] border border-white/10 rounded-xl h-full overflow-y-auto custom-scrollbar">
                         {content.sections.map((section: any, index: number) => (
                             <div key={index} className="mb-10 last:mb-0 animate-slideUp" style={{ animationDelay: `${index * 0.1}s` }}>
-                                <h2 className="text-2xl font-bold mb-4 text-[#ccff00] border-b border-white/10 pb-2">
+                                <h2 className="text-2xl font-bold mb-4 text-[#87CEEB] border-b border-white/10 pb-2">
                                     {section.title}
                                 </h2>
                                 <div className="space-y-4 text-gray-300 leading-relaxed">
@@ -589,7 +589,7 @@ export default function ProjectDetail() {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-screen">
-                <div className="animate-spin h-12 w-12 border-4 border-[#ccff00] border-t-transparent rounded-full"></div>
+                <div className="animate-spin h-12 w-12 border-4 border-[#87CEEB] border-t-transparent rounded-full"></div>
             </div>
         )
     }
@@ -621,7 +621,7 @@ export default function ProjectDetail() {
                     <button
                         onClick={handleExport}
                         disabled={!project.generated_content}
-                        className="bg-[#ccff00] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#b3e600] disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors shadow-[0_0_15px_rgba(204,255,0,0.2)]"
+                        className="bg-[#87CEEB] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#6BB6D6] disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors shadow-[0_0_15px_rgba(135,206,235,0.2)]"
                     >
                         <Download className="h-4 w-4 mr-2" />
                         Export
@@ -679,9 +679,9 @@ export default function ProjectDetail() {
                     {/* Controls Sidebar */}
                     <div className="space-y-6">
                         {/* Generate / Regenerate Box */}
-                        <div className="bento-card p-6 border-[#ccff00]/20">
+                        <div className="bento-card p-6 border-[#87CEEB]/20">
                             <h3 className="text-lg font-bold mb-4 text-white flex items-center">
-                                <Sparkles className="w-4 h-4 mr-2 text-[#ccff00]" />
+                                <Sparkles className="w-4 h-4 mr-2 text-[#87CEEB]" />
                                 Control Center
                             </h3>
 
@@ -689,7 +689,7 @@ export default function ProjectDetail() {
                                 <button
                                     onClick={handleGenerate}
                                     disabled={generating}
-                                    className="w-full bg-[#ccff00] text-black py-3 rounded-xl font-bold hover:bg-[#b3e600] disabled:opacity-50 transition-colors shadow-[0_0_20px_rgba(204,255,0,0.2)]"
+                                    className="w-full bg-[#87CEEB] text-black py-3 rounded-xl font-bold hover:bg-[#6BB6D6] disabled:opacity-50 transition-colors shadow-[0_0_20px_rgba(135,206,235,0.2)]"
                                 >
                                     {generating ? (
                                         <span className="flex items-center justify-center">
@@ -749,8 +749,8 @@ export default function ProjectDetail() {
                         <div className="bento-card p-4">
                             <div className="flex items-center justify-between text-xs font-mono text-gray-500 mb-2">
                                 <span>SYSTEM STATUS</span>
-                                <span className="text-[#ccff00] flex items-center">
-                                    <div className="w-1.5 h-1.5 bg-[#ccff00] rounded-full mr-1 animate-pulse"></div>
+                                <span className="text-[#87CEEB] flex items-center">
+                                    <div className="w-1.5 h-1.5 bg-[#87CEEB] rounded-full mr-1 animate-pulse"></div>
                                     ONLINE
                                 </span>
                             </div>
@@ -760,7 +760,7 @@ export default function ProjectDetail() {
                                     <span>12ms</span>
                                 </div>
                                 <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                                    <div className="bg-[#ccff00] h-full w-[12%]"></div>
+                                    <div className="bg-[#87CEEB] h-full w-[12%]"></div>
                                 </div>
                             </div>
                         </div>
