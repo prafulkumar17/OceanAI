@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { projectApi } from '../services/api'
 import { Project } from '../types/project'
-import { ArrowLeft, Sparkles, Download, RefreshCw, Loader, Brain, FileText, PenTool, CheckCircle, Eye, Undo } from 'lucide-react'
+import { ArrowLeft, Sparkles, Download, RefreshCw, Loader, Brain, FileText, PenTool, CheckCircle, Undo } from 'lucide-react'
 
 export default function ProjectDetail() {
     const { id } = useParams<{ id: string }>()
@@ -16,8 +16,9 @@ export default function ProjectDetail() {
     const [isEditing, setIsEditing] = useState(false)
     const [editedContent, setEditedContent] = useState<any>(null)
     const [saving, setSaving] = useState(false)
-    const [showPreview, setShowPreview] = useState(true)
     const [contentHistory, setContentHistory] = useState<string[]>([])
+    const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
+    const [loadingPdf, setLoadingPdf] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
@@ -25,6 +26,13 @@ export default function ProjectDetail() {
             loadProject(parseInt(id))
         }
     }, [id])
+
+    useEffect(() => {
+        // Auto-load PDF preview when PPTX content changes
+        if (project?.generated_content && project.document_type === 'pptx' && id) {
+            loadPdfPreview(parseInt(id))
+        }
+    }, [project?.generated_content, project?.document_type, id])
 
     const loadProject = async (projectId: number) => {
         try {
@@ -157,6 +165,26 @@ export default function ProjectDetail() {
         setContentHistory(newHistory)
     }
 
+    const loadPdfPreview = async (projectId: number) => {
+        try {
+            setLoadingPdf(true)
+            const blob = await projectApi.getPdfPreview(projectId)
+            const url = window.URL.createObjectURL(blob)
+
+            // Clean up old URL
+            if (pdfPreviewUrl) {
+                window.URL.revokeObjectURL(pdfPreviewUrl)
+            }
+
+            setPdfPreviewUrl(url)
+        } catch (err: any) {
+            console.error('Failed to load PDF preview:', err)
+            // Silently fail - will show fallback message
+        } finally {
+            setLoadingPdf(false)
+        }
+    }
+
     const getProgressStep = (length: number) => {
         if (length < 100) return 0
         if (length < 300) return 1
@@ -231,7 +259,7 @@ export default function ProjectDetail() {
         if (!project?.generated_content) return null
 
         try {
-            const content = isEditing ? editedContent : JSON.parse(project.generated_content)
+            const content = JSON.parse(project.generated_content)
 
             if (project.document_type === 'docx' && content.sections) {
                 return (
@@ -258,36 +286,42 @@ export default function ProjectDetail() {
             }
 
             if (project.document_type === 'pptx' && content.slides) {
-                return (
-                    <div className="space-y-6 mb-8">
-                        {content.slides.map((slide: any, idx: number) => (
-                            <div
-                                key={idx}
-                                className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 overflow-hidden mx-auto"
-                                style={{
-                                    width: '800px',
-                                    height: '450px',
-                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                }}
-                            >
-                                <div className="h-full flex flex-col justify-center items-center p-12 text-white">
-                                    <h2 className="text-4xl font-bold mb-8 text-center drop-shadow-lg">
-                                        {slide.title}
-                                    </h2>
-                                    <ul className="space-y-4 w-full max-w-2xl">
-                                        {slide.bullets?.map((bullet: string, bIdx: number) => (
-                                            <li key={bIdx} className="flex items-start text-xl">
-                                                <span className="mr-4 text-2xl">•</span>
-                                                <span className="drop-shadow">{bullet}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                    <div className="absolute bottom-4 right-6 text-sm opacity-70">
-                                        Slide {idx + 1} of {content.slides.length}
+                // Show PDF preview if available
+                if (pdfPreviewUrl) {
+                    return (
+                        <div className="mb-8 relative">
+                            <iframe
+                                src={pdfPreviewUrl}
+                                className={`w-full border-2 border-gray-300 rounded-lg shadow-xl transition-all duration-300 ${loadingPdf ? 'blur-sm' : ''}`}
+                                style={{ height: '600px' }}
+                                title="PDF Preview"
+                            />
+                            {loadingPdf && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-lg">
+                                    <div className="bg-white rounded-lg shadow-lg p-6 flex flex-col items-center">
+                                        <Loader className="h-8 w-8 animate-spin text-primary-600 mb-2" />
+                                        <p className="text-gray-700 font-medium">Updating preview...</p>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            )}
+                        </div>
+                    )
+                }
+
+                // Show loading state
+                if (loadingPdf) {
+                    return (
+                        <div className="text-center py-12">
+                            <Loader className="h-8 w-8 mx-auto animate-spin text-primary-600 mb-2" />
+                            <p className="text-gray-500">Generating preview...</p>
+                        </div>
+                    )
+                }
+
+                // Fallback message
+                return (
+                    <div className="text-center py-12 text-gray-500">
+                        <p>Preview not available</p>
                     </div>
                 )
             }
@@ -298,55 +332,39 @@ export default function ProjectDetail() {
         return null
     }
 
-    const renderContent = () => {
-        if (generating) {
-            return renderLoadingSteps()
-        }
-
+    const renderEditableContent = () => {
         if (!project?.generated_content) return null
 
         try {
-            const content = isEditing ? editedContent : JSON.parse(project.generated_content)
+            const content = editedContent || JSON.parse(project.generated_content)
 
             if (project.document_type === 'docx' && content.sections) {
                 return (
                     <div className="space-y-6">
                         {content.sections.map((section: any, idx: number) => (
                             <div key={idx} className="border-l-4 border-primary-500 pl-4">
-                                {isEditing ? (
-                                    <input
-                                        type="text"
-                                        value={section.title}
+                                <input
+                                    type="text"
+                                    value={section.title}
+                                    onChange={(e) => {
+                                        const newContent = { ...content }
+                                        newContent.sections[idx].title = e.target.value
+                                        setEditedContent(newContent)
+                                    }}
+                                    className="text-xl font-semibold text-gray-900 mb-2 w-full border-b-2 border-primary-300 focus:outline-none focus:border-primary-600"
+                                />
+                                {section.content?.map((para: string, pIdx: number) => (
+                                    <textarea
+                                        key={pIdx}
+                                        value={para}
                                         onChange={(e) => {
-                                            const newContent = { ...editedContent }
-                                            newContent.sections[idx].title = e.target.value
+                                            const newContent = { ...content }
+                                            newContent.sections[idx].content[pIdx] = e.target.value
                                             setEditedContent(newContent)
                                         }}
-                                        className="text-xl font-semibold text-gray-900 mb-2 w-full border-b-2 border-primary-300 focus:outline-none focus:border-primary-600"
+                                        rows={3}
+                                        className="w-full text-gray-700 mb-3 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
                                     />
-                                ) : (
-                                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                        {section.title}
-                                    </h3>
-                                )}
-                                {section.content?.map((para: string, pIdx: number) => (
-                                    isEditing ? (
-                                        <textarea
-                                            key={pIdx}
-                                            value={para}
-                                            onChange={(e) => {
-                                                const newContent = { ...editedContent }
-                                                newContent.sections[idx].content[pIdx] = e.target.value
-                                                setEditedContent(newContent)
-                                            }}
-                                            rows={3}
-                                            className="w-full text-gray-700 mb-3 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                        />
-                                    ) : (
-                                        <p key={pIdx} className="text-gray-700 mb-3">
-                                            {para}
-                                        </p>
-                                    )
                                 ))}
                             </div>
                         ))}
@@ -359,40 +377,30 @@ export default function ProjectDetail() {
                     <div className="space-y-6">
                         {content.slides.map((slide: any, idx: number) => (
                             <div key={idx} className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                                {isEditing ? (
-                                    <input
-                                        type="text"
-                                        value={slide.title}
-                                        onChange={(e) => {
-                                            const newContent = { ...editedContent }
-                                            newContent.slides[idx].title = e.target.value
-                                            setEditedContent(newContent)
-                                        }}
-                                        className="text-xl font-semibold text-gray-900 mb-4 w-full border-b-2 border-primary-300 focus:outline-none focus:border-primary-600"
-                                    />
-                                ) : (
-                                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                                        Slide {idx + 1}: {slide.title}
-                                    </h3>
-                                )}
+                                <input
+                                    type="text"
+                                    value={slide.title}
+                                    onChange={(e) => {
+                                        const newContent = { ...content }
+                                        newContent.slides[idx].title = e.target.value
+                                        setEditedContent(newContent)
+                                    }}
+                                    className="text-xl font-semibold text-gray-900 mb-4 w-full border-b-2 border-primary-300 focus:outline-none focus:border-primary-600"
+                                />
                                 <ul className="space-y-2">
                                     {slide.bullets?.map((bullet: string, bIdx: number) => (
                                         <li key={bIdx} className="flex items-start">
                                             <span className="text-primary-600 mr-2">•</span>
-                                            {isEditing ? (
-                                                <input
-                                                    type="text"
-                                                    value={bullet}
-                                                    onChange={(e) => {
-                                                        const newContent = { ...editedContent }
-                                                        newContent.slides[idx].bullets[bIdx] = e.target.value
-                                                        setEditedContent(newContent)
-                                                    }}
-                                                    className="flex-1 text-gray-700 border-b border-gray-300 focus:outline-none focus:border-primary-600"
-                                                />
-                                            ) : (
-                                                <span className="text-gray-700">{bullet}</span>
-                                            )}
+                                            <input
+                                                type="text"
+                                                value={bullet}
+                                                onChange={(e) => {
+                                                    const newContent = { ...content }
+                                                    newContent.slides[idx].bullets[bIdx] = e.target.value
+                                                    setEditedContent(newContent)
+                                                }}
+                                                className="flex-1 text-gray-700 border-b border-gray-300 focus:outline-none focus:border-primary-600"
+                                            />
                                         </li>
                                     ))}
                                 </ul>
@@ -483,14 +491,6 @@ export default function ProjectDetail() {
                             </button>
 
                             <button
-                                onClick={() => setShowPreview(!showPreview)}
-                                className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                            >
-                                <Eye className="h-4 w-4 mr-2" />
-                                {showPreview ? 'Hide' : 'Show'} Preview
-                            </button>
-
-                            <button
                                 onClick={handleRevert}
                                 disabled={contentHistory.length === 0}
                                 className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -559,13 +559,17 @@ export default function ProjectDetail() {
                 </div>
 
                 <div className="p-6">
-                    {project.generated_content || generating ? (
+                    {generating ? (
+                        renderLoadingSteps()
+                    ) : project.generated_content ? (
                         <>
-                            {showPreview && !generating && renderPreview()}
+                            {/* Show preview when NOT editing, show editable content when editing */}
+                            {!isEditing ? renderPreview() : (
+                                <div className="mb-6">{renderEditableContent()}</div>
+                            )}
 
-                            <div className="mb-6">{renderContent()}</div>
-
-                            {project.generated_content && !generating && (
+                            {/* Refinement Section - always visible at bottom */}
+                            {!isEditing && (
                                 <div className="border-t border-gray-200 pt-6 mt-6">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-3">
                                         Refine Content
