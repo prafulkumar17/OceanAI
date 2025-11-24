@@ -443,30 +443,30 @@ export default function ProjectDetail() {
     }
 
     return (
-        <div>
+        <div className="animate-fadeIn">
             <button
                 onClick={() => navigate('/projects')}
-                className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+                className="flex items-center text-slate-400 hover:text-white mb-6 transition-colors"
             >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Projects
             </button>
 
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-6">
-                    <h1 className="text-2xl font-bold text-white mb-2">{project.title}</h1>
-                    <p className="text-primary-100">Topic: {project.topic}</p>
-                    <span className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-sm text-white">
+            <div className="glass-card overflow-hidden">
+                <div className="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 px-6 py-6 border-b border-amber-900/20">
+                    <h1 className="text-3xl font-bold text-white mb-2 animate-slideUp">{project.title}</h1>
+                    <p className="text-amber-100">Topic: {project.topic}</p>
+                    <span className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-xs font-semibold text-white backdrop-blur-sm">
                         {project.document_type.toUpperCase()}
                     </span>
                 </div>
 
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <div className="px-6 py-4 border-b border-amber-900/30 bg-neutral-900/30 backdrop-blur-sm">
                     {!project.generated_content ? (
                         <button
                             onClick={handleGenerate}
                             disabled={generating}
-                            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                            className="gradient-button flex items-center px-6 py-3 rounded-xl font-semibold text-white disabled:opacity-50"
                         >
                             {generating ? (
                                 <>
@@ -484,7 +484,7 @@ export default function ProjectDetail() {
                         <div className="flex space-x-3">
                             <button
                                 onClick={handleExport}
-                                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                                className="flex items-center px-4 py-2.5 bg-gradient-to-r from-amber-700 to-amber-800 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-amber-700 shadow-lg hover:shadow-amber-900/30 transition-all duration-300"
                             >
                                 <Download className="h-4 w-4 mr-2" />
                                 Export
@@ -493,7 +493,7 @@ export default function ProjectDetail() {
                             <button
                                 onClick={handleRevert}
                                 disabled={contentHistory.length === 0}
-                                className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center px-4 py-2.5 bg-gradient-to-r from-orange-700 to-orange-800 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 shadow-lg hover:shadow-orange-900/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title={contentHistory.length === 0 ? 'No previous versions' : `Revert to previous version (${contentHistory.length} version${contentHistory.length > 1 ? 's' : ''} available)`}
                             >
                                 <Undo className="h-4 w-4 mr-2" />
@@ -504,7 +504,7 @@ export default function ProjectDetail() {
                                 <>
                                     <button
                                         onClick={handleEdit}
-                                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                        className="flex items-center px-4 py-2.5 bg-gradient-to-r from-amber-700 to-amber-800 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-amber-700 shadow-lg hover:shadow-amber-900/30 transition-all duration-300"
                                     >
                                         <PenTool className="h-4 w-4 mr-2" />
                                         Edit
@@ -512,7 +512,7 @@ export default function ProjectDetail() {
                                     <button
                                         onClick={handleGenerate}
                                         disabled={generating}
-                                        className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                                        className="gradient-button flex items-center px-4 py-2.5 rounded-xl font-semibold text-white disabled:opacity-50"
                                     >
                                         {generating ? (
                                             <>
@@ -532,7 +532,7 @@ export default function ProjectDetail() {
                                     <button
                                         onClick={handleSaveEdit}
                                         disabled={saving}
-                                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                        className="gradient-button flex items-center px-4 py-2.5 rounded-xl font-semibold text-white disabled:opacity-50"
                                     >
                                         {saving ? (
                                             <>
@@ -548,7 +548,7 @@ export default function ProjectDetail() {
                                     </button>
                                     <button
                                         onClick={handleCancelEdit}
-                                        className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                                        className="flex items-center px-4 py-2.5 bg-neutral-800 text-white rounded-xl font-semibold hover:bg-neutral-700 border border-neutral-700 hover:border-neutral-600 transition-all duration-300"
                                     >
                                         Cancel
                                     </button>
@@ -558,7 +558,7 @@ export default function ProjectDetail() {
                     )}
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 bg-neutral-900/20 backdrop-blur-sm">
                     {generating ? (
                         renderLoadingSteps()
                     ) : project.generated_content ? (
@@ -570,8 +570,8 @@ export default function ProjectDetail() {
 
                             {/* Refinement Section - always visible at bottom */}
                             {!isEditing && (
-                                <div className="border-t border-gray-200 pt-6 mt-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                                <div className="border-t border-amber-900/30 pt-6 mt-6">
+                                    <h3 className="text-lg font-semibold text-amber-100 mb-3">
                                         Refine Content
                                     </h3>
                                     <div className="space-y-3">
@@ -580,12 +580,12 @@ export default function ProjectDetail() {
                                             onChange={(e) => setRefinementPrompt(e.target.value)}
                                             placeholder="Enter your refinement instructions (e.g., 'Make it more formal', 'Add more details about X', 'Simplify the language')"
                                             rows={3}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                            className="w-full px-4 py-3 bg-neutral-900/50 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all duration-200 resize-none"
                                         />
                                         <button
                                             onClick={handleRefine}
                                             disabled={refining || !refinementPrompt.trim()}
-                                            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="gradient-button flex items-center px-4 py-2.5 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {refining ? (
                                                 <>
@@ -604,15 +604,15 @@ export default function ProjectDetail() {
                             )}
                         </>
                     ) : (
-                        <div className="text-center py-12 text-gray-500">
-                            <Sparkles className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                        <div className="text-center py-12 text-neutral-400">
+                            <Sparkles className="h-12 w-12 mx-auto mb-4 text-amber-500/50" />
                             <p>No content generated yet. Click "Generate Document" to create your document.</p>
                         </div>
                     )}
 
                     {error && (
-                        <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-                            <p className="text-red-800">{error}</p>
+                        <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4 backdrop-blur-sm">
+                            <p className="text-red-300">{error}</p>
                         </div>
                     )}
                 </div>
