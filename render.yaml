@@ -26,7 +26,6 @@ services:
   - type: web
     name: oceanai-frontend
     runtime: static
-    region: oregon
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
