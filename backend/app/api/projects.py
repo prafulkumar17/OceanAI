@@ -19,6 +19,8 @@ from app.services.document_generator import DocumentGenerator
 from app.services.file_exporter import FileExporter
 import json
 
+from datetime import datetime
+
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 @router.post("/", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
@@ -36,7 +38,8 @@ def create_project(
             topic=project.topic,
             document_type=project.document_type,
             owner_id=0,
-            generated_content=None
+            generated_content=None,
+            created_at=datetime.utcnow()
         )
     
     db_project = Project(
@@ -79,7 +82,8 @@ def get_project(
                 topic="Sample Topic",
                 document_type="docx",
                 owner_id=0,
-                generated_content=None
+                generated_content=None,
+                created_at=datetime.utcnow()
             )
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -113,7 +117,8 @@ async def generate_document(
                 topic="Sample Topic",
                 document_type="docx",
                 owner_id=0,
-                generated_content=json.dumps(content)
+                generated_content=json.dumps(content),
+                created_at=datetime.utcnow()
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error generating document: {str(e)}")
@@ -164,6 +169,29 @@ async def generate_document_stream(
     current_user = get_user_by_email(db, email=email)
     if not current_user:
         raise HTTPException(status_code=401, detail="User not found")
+
+    # Guest Logic for Stream
+    if getattr(current_user, 'is_guest', False):
+         async def guest_event_generator():
+            generator = DocumentGenerator()
+            full_content = ""
+            try:
+                # Mock topic/type for guest
+                async for chunk in generator.generate_document_stream("Sample Topic", DocumentType.DOCX):
+                    full_content += chunk
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                
+                # Clean and parse
+                cleaned_content = generator._clean_json_response(full_content)
+                parsed_content = json.loads(cleaned_content)
+                final_content = {"type": "docx", "sections": parsed_content.get("sections", [])}
+                
+                yield f"data: {json.dumps({'status': 'complete', 'content': final_content})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+         
+         from fastapi.responses import StreamingResponse
+         return StreamingResponse(guest_event_generator(), media_type="text/event-stream")
 
     project = db.query(Project).filter(
         Project.id == project_id,
@@ -219,6 +247,33 @@ async def refine_document(
     current_user: User = Depends(get_current_user)
 ):
     """Refine the document content"""
+    
+    # Guest Logic
+    if getattr(current_user, 'is_guest', False):
+        try:
+            # For guest, we can't really refine "existing" content easily since it's not saved.
+            # But we can generate NEW content based on the prompt to simulate refinement.
+            # Or we could pass the current content in the request, but the schema doesn't support it yet.
+            # For now, let's just generate a fresh document based on the refinement prompt as the "topic".
+            # This is a simplification for the demo.
+            
+            generator = DocumentGenerator()
+            # We'll use the refinement prompt as the new "instruction" for a fresh generation
+            # This isn't perfect but it works for a stateless guest demo
+            content = await generator.generate_document(refine_request.refinement_prompt, DocumentType.DOCX)
+            
+            return Project(
+                id=999999,
+                title="Guest Project (Refined)",
+                topic=refine_request.refinement_prompt,
+                document_type="docx",
+                owner_id=0,
+                generated_content=json.dumps(content),
+                created_at=datetime.utcnow()
+            )
+        except Exception as e:
+             raise HTTPException(status_code=500, detail=f"Error refining document: {str(e)}")
+
     project = db.query(Project).filter(
         Project.id == project_id,
         Project.owner_id == current_user.id
