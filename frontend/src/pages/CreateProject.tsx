@@ -57,7 +57,7 @@ export default function CreateProject() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-8">
             {/* Title Input */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-400 uppercase tracking-wider">
@@ -76,15 +76,15 @@ export default function CreateProject() {
             {/* Topic Input */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-400 uppercase tracking-wider">
-                Description
+                Prompt here
               </label>
-              <input
-                type="text"
+              <textarea
                 required
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all"
-                placeholder="Enter topic..."
+                rows={4}
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all resize-none"
+                placeholder="Enter prompt..."
               />
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function CreateProject() {
               </>
             ) : (
               <>
-                Launch Project
+                Generate Project
                 <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </>
             )}

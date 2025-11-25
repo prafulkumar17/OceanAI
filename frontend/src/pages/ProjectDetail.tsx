@@ -156,6 +156,12 @@ export default function ProjectDetail() {
 
     const handleExport = async () => {
         if (!project || !id) return
+
+        if (localStorage.getItem('is_guest') === 'true') {
+            setError('Login to export')
+            return
+        }
+
         try {
             const blob = await projectApi.exportDocument(parseInt(id))
             const url = window.URL.createObjectURL(blob)
@@ -634,21 +640,22 @@ export default function ProjectDetail() {
 
                 <div className="flex items-center space-x-3">
                     <button
+                        onClick={handleRevert}
+                        disabled={contentHistory.length === 0}
+                        className="bg-white/5 text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-white/10 hover:text-white disabled:opacity-30 transition-colors flex items-center border border-white/10"
+                        title="Revert to previous version"
+                    >
+                        <Undo className="h-4 w-4 mr-2" />
+                        Revert
+                    </button>
+
+                    <button
                         onClick={handleExport}
                         disabled={!project.generated_content}
                         className="bg-[#87CEEB] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#6BB6D6] disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors shadow-[0_0_15px_rgba(135,206,235,0.2)]"
                     >
                         <Download className="h-4 w-4 mr-2" />
                         Export
-                    </button>
-
-                    <button
-                        onClick={handleRevert}
-                        disabled={contentHistory.length === 0}
-                        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors"
-                        title="Revert to previous version"
-                    >
-                        <Undo className="h-5 w-5" />
                     </button>
 
                     {!isEditing && (
@@ -697,7 +704,7 @@ export default function ProjectDetail() {
                         <div className="bento-card p-6 border-[#87CEEB]/20">
                             <h3 className="text-lg font-bold mb-4 text-white flex items-center">
                                 <Sparkles className="w-4 h-4 mr-2 text-[#87CEEB]" />
-                                Control Center
+                                Did not like the content?
                             </h3>
 
                             {!project.generated_content ? (
