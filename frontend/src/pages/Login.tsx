@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, AlertTriangle, Sparkles } from 'lucide-react'
+import { ArrowRight, AlertTriangle, Sparkles, CheckCircle } from 'lucide-react'
 import { authApi } from '../services/api'
 
 export default function Login() {
@@ -10,6 +10,7 @@ export default function Login() {
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,10 +21,14 @@ export default function Login() {
     try {
       if (isLogin) {
         await authApi.login(email, password)
+        navigate('/projects')
       } else {
         await authApi.register(email, password, fullName)
+        setShowSuccess(true)
+        setTimeout(() => {
+          navigate('/projects')
+        }, 2000)
       }
-      navigate('/projects')
     } catch (err: any) {
       setError(err.response?.data?.detail || 'An error occurred')
     } finally {
@@ -79,71 +84,81 @@ export default function Login() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLogin && (
+          {showSuccess ? (
+            <div className="py-12 flex flex-col items-center justify-center text-center animate-fadeIn">
+              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-6">
+                <CheckCircle className="w-8 h-8 text-green-500 animate-bounce" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Account Created!</h3>
+              <p className="text-gray-400">Redirecting to your workspace...</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {!isLogin && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all"
+                    placeholder="John Doe"
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Full Name
+                  Email Address
                 </label>
                 <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all"
-                  placeholder="John Doe"
+                  placeholder="user@oceanai.app"
                 />
               </div>
-            )}
 
-            <div className="space-y-2">
-              <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider">
-                Email Address
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all"
-                placeholder="user@oceanai.app"
-              />
-            </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all"
+                  placeholder="••••••••"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-gray-600 focus:outline-none focus:border-[#87CEEB]/50 focus:ring-1 focus:ring-[#87CEEB]/50 transition-all"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#87CEEB] text-black py-3 rounded-xl font-bold hover:bg-[#6BB6D6] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_20px_rgba(135,206,235,0.2)] hover:shadow-[0_0_30px_rgba(135,206,235,0.4)] group"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <Sparkles className="animate-spin mr-2 h-4 w-4" />
-                  Processing...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center">
-                  {isLogin ? 'Enter System' : 'Create Account'}
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </span>
-              )}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#87CEEB] text-black py-3 rounded-xl font-bold hover:bg-[#6BB6D6] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_20px_rgba(135,206,235,0.2)] hover:shadow-[0_0_30px_rgba(135,206,235,0.4)] group"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <Sparkles className="animate-spin mr-2 h-4 w-4" />
+                    Processing...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center">
+                    {isLogin ? 'Enter System' : 'Create Account'}
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                )}
+              </button>
+            </form>
+          )}
 
           {/* Guest Login */}
-          {isLogin && (
+          {isLogin && !showSuccess && (
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -164,16 +179,18 @@ export default function Login() {
           )}
 
           {/* Toggle */}
-          <div className="mt-8 text-center pt-6 border-t border-white/5">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-gray-400 hover:text-[#87CEEB] transition-colors"
-            >
-              {isLogin
-                ? "Don't have an account? Register"
-                : 'Already have an account? Login'}
-            </button>
-          </div>
+          {!showSuccess && (
+            <div className="mt-8 text-center pt-6 border-t border-white/5">
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-sm text-gray-400 hover:text-[#87CEEB] transition-colors"
+              >
+                {isLogin
+                  ? "Don't have an account? Register"
+                  : 'Already have an account? Login'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
