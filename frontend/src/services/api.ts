@@ -54,6 +54,7 @@ export const authApi = {
 
     const { access_token } = response.data
     localStorage.setItem('access_token', access_token)
+    localStorage.removeItem('is_guest') // Clear guest flag on normal login
     return response.data
   },
 

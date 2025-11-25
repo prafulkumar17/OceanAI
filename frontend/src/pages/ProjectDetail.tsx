@@ -745,25 +745,7 @@ export default function ProjectDetail() {
                             </div>
                         )}
 
-                        {/* Status Box */}
-                        <div className="bento-card p-4">
-                            <div className="flex items-center justify-between text-xs font-mono text-gray-500 mb-2">
-                                <span>SYSTEM STATUS</span>
-                                <span className="text-[#87CEEB] flex items-center">
-                                    <div className="w-1.5 h-1.5 bg-[#87CEEB] rounded-full mr-1 animate-pulse"></div>
-                                    ONLINE
-                                </span>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs text-gray-400">
-                                    <span>Latency</span>
-                                    <span>12ms</span>
-                                </div>
-                                <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                                    <div className="bg-[#87CEEB] h-full w-[12%]"></div>
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
             </div>
