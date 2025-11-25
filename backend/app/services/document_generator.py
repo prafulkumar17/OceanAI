@@ -139,7 +139,10 @@ Make the content engaging, informative, and well-structured for a presentation."
         document_type: DocumentType
     ) -> Dict[str, Any]:
         """Refine existing content based on user prompt"""
-        prompt = f"""Refine the following {document_type.value.upper()} document based on this instruction: "{refinement_prompt}"
+        # Handle both Enum and string types safely
+        doc_type_str = str(document_type.value) if hasattr(document_type, 'value') else str(document_type)
+        
+        prompt = f"""Refine the following {doc_type_str.upper()} document based on this instruction: "{refinement_prompt}"
 
 Current content:
 {current_content}
@@ -155,7 +158,7 @@ Make sure to maintain the structure but improve it according to the refinement p
             content = self._clean_json_response(content)
             refined_data = json.loads(content)
             
-            if document_type == DocumentType.DOCX:
+            if doc_type_str == "docx":
                 return {
                     "type": "docx",
                     "sections": refined_data.get("sections", [])
