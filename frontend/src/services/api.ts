@@ -93,8 +93,12 @@ export const projectApi = {
     return response.data
   },
 
-  generateDocument: async (id: number): Promise<Project> => {
-    const response = await api.post<Project>(`/api/projects/${id}/generate`)
+  generateDocument: async (id: number, topic?: string, document_type?: string): Promise<Project> => {
+    const response = await api.post<Project>(`/api/projects/${id}/generate`, {
+      project_id: id,
+      topic,
+      document_type
+    })
     return response.data
   },
 

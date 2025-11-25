@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
     Save,
     ArrowLeft,
@@ -22,6 +22,7 @@ import LoadingSteps from '../components/LoadingSteps'
 export default function ProjectDetail() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
+    const location = useLocation()
     const [project, setProject] = useState<Project | null>(null)
     const [loading, setLoading] = useState(true)
     const [generating, setGenerating] = useState(false)
@@ -38,10 +39,13 @@ export default function ProjectDetail() {
     const [loadingPdf, setLoadingPdf] = useState(false)
 
     useEffect(() => {
-        if (id) {
+        if (location.state?.project) {
+            setProject(location.state.project)
+            setLoading(false)
+        } else if (id) {
             loadProject(parseInt(id))
         }
-    }, [id])
+    }, [id, location.state])
 
     // Load PDF preview when content changes for PPTX
     useEffect(() => {
@@ -49,6 +53,13 @@ export default function ProjectDetail() {
             loadPdfPreview(parseInt(id))
         }
     }, [project?.generated_content, isEditing, id])
+
+    // Auto-generate content if new project
+    useEffect(() => {
+        if (project && !project.generated_content && !generating && !error && id) {
+            handleGenerate()
+        }
+    }, [project, id])
 
     const loadProject = async (projectId: number) => {
         try {
@@ -111,7 +122,11 @@ export default function ProjectDetail() {
         saveVersion()
 
         try {
-            const updatedProject = await projectApi.generateDocument(parseInt(id))
+            const updatedProject = await projectApi.generateDocument(
+                parseInt(id),
+                project.topic,
+                project.document_type
+            )
             setProject(updatedProject)
             setStreamedContent(updatedProject.generated_content ? JSON.parse(updatedProject.generated_content) : '')
         } catch (err) {
@@ -537,7 +552,7 @@ export default function ProjectDetail() {
                             </div>
                         )}
                         <iframe
-                            src={pdfPreviewUrl}
+                            src={`${pdfPreviewUrl}#zoom=67&navpanes=0&toolbar=0&view=FitH`}
                             className={`w-full h-full transition-opacity duration-300 ${loadingPdf ? 'opacity-50' : 'opacity-100'}`}
                             title="PDF Preview"
                         />

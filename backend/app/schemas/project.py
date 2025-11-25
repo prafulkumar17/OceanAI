@@ -27,7 +27,9 @@ class ProjectResponse(BaseModel):
         from_attributes = True
 
 class ProjectGenerateRequest(BaseModel):
-    project_id: int
+    project_id: Optional[int] = None
+    topic: Optional[str] = None
+    document_type: Optional[str] = None
 
 class ProjectRefineRequest(BaseModel):
     refinement_prompt: str

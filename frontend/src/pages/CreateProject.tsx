@@ -22,7 +22,7 @@ export default function CreateProject() {
         topic,
         document_type: documentType,
       })
-      navigate(`/projects/${project.id}`)
+      navigate(`/projects/${project.id}`, { state: { project } })
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to create project')
     } finally {
@@ -99,8 +99,8 @@ export default function CreateProject() {
                 type="button"
                 onClick={() => setDocumentType('docx')}
                 className={`group relative p-6 rounded-2xl border transition-all duration-300 ${documentType === 'docx'
-                    ? 'bg-[#00ffff]/10 border-[#00ffff]/50 shadow-[0_0_30px_-10px_rgba(0,255,255,0.3)]'
-                    : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                  ? 'bg-[#00ffff]/10 border-[#00ffff]/50 shadow-[0_0_30px_-10px_rgba(0,255,255,0.3)]'
+                  : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                   }`}
               >
                 <div className="absolute top-4 right-4 w-5 h-5 rounded-full border border-white/20 flex items-center justify-center">
@@ -117,8 +117,8 @@ export default function CreateProject() {
                 type="button"
                 onClick={() => setDocumentType('pptx')}
                 className={`group relative p-6 rounded-2xl border transition-all duration-300 ${documentType === 'pptx'
-                    ? 'bg-[#ff00ff]/10 border-[#ff00ff]/50 shadow-[0_0_30px_-10px_rgba(255,0,255,0.3)]'
-                    : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                  ? 'bg-[#ff00ff]/10 border-[#ff00ff]/50 shadow-[0_0_30px_-10px_rgba(255,0,255,0.3)]'
+                  : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                   }`}
               >
                 <div className="absolute top-4 right-4 w-5 h-5 rounded-full border border-white/20 flex items-center justify-center">

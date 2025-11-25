@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.database import get_db
 from app.models.project import Project, DocumentType
@@ -100,6 +100,7 @@ def get_project(
 @router.post("/{project_id}/generate", response_model=ProjectResponse)
 async def generate_document(
     project_id: int,
+    request: Optional[ProjectGenerateRequest] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -108,14 +109,18 @@ async def generate_document(
     if getattr(current_user, 'is_guest', False):
         try:
             generator = DocumentGenerator()
-            # Use a mock topic for guest
-            content = await generator.generate_document("Sample Topic", DocumentType.DOCX)
+            # Use provided topic or fallback to sample
+            topic = request.topic if request and request.topic else "Sample Topic"
+            doc_type_str = request.document_type if request and request.document_type else "docx"
+            doc_type = DocumentType(doc_type_str)
+            
+            content = await generator.generate_document(topic, doc_type)
             
             return Project(
                 id=999999,
                 title="Guest Project",
-                topic="Sample Topic",
-                document_type="docx",
+                topic=topic,
+                document_type=doc_type,
                 owner_id=0,
                 generated_content=json.dumps(content),
                 created_at=datetime.utcnow()
@@ -148,6 +153,8 @@ async def generate_document(
 async def generate_document_stream(
     project_id: int,
     token: str = Query(..., description="Access token for authentication"),
+    topic: Optional[str] = Query(None, description="Topic for guest generation"),
+    document_type: Optional[str] = Query(None, description="Document type for guest generation"),
     db: Session = Depends(get_db)
 ):
     """Stream the document generation process"""
@@ -176,15 +183,23 @@ async def generate_document_stream(
             generator = DocumentGenerator()
             full_content = ""
             try:
-                # Mock topic/type for guest
-                async for chunk in generator.generate_document_stream("Sample Topic", DocumentType.DOCX):
+                # Use provided topic or fallback
+                guest_topic = topic if topic else "Sample Topic"
+                guest_doc_type_str = document_type if document_type else "docx"
+                guest_doc_type = DocumentType(guest_doc_type_str)
+
+                async for chunk in generator.generate_document_stream(guest_topic, guest_doc_type):
                     full_content += chunk
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n"
                 
                 # Clean and parse
                 cleaned_content = generator._clean_json_response(full_content)
                 parsed_content = json.loads(cleaned_content)
-                final_content = {"type": "docx", "sections": parsed_content.get("sections", [])}
+                
+                if guest_doc_type == DocumentType.DOCX:
+                    final_content = {"type": "docx", "sections": parsed_content.get("sections", [])}
+                else:
+                    final_content = {"type": "pptx", "slides": parsed_content.get("slides", [])}
                 
                 yield f"data: {json.dumps({'status': 'complete', 'content': final_content})}\n\n"
             except Exception as e:
