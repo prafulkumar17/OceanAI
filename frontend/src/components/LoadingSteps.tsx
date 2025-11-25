@@ -30,16 +30,16 @@ export default function LoadingSteps() {
                 {steps.map((step, index) => {
                     const isActive = index === activeStep
                     const isCompleted = index < activeStep
-                    const isPending = index > activeStep
+
 
                     return (
                         <div
                             key={index}
                             className={`flex items-center p-4 rounded-xl border transition-all duration-500 ${isActive
-                                    ? 'bg-[#87CEEB]/10 border-[#87CEEB]/50 scale-105 shadow-[0_0_20px_rgba(135,206,235,0.1)]'
-                                    : isCompleted
-                                        ? 'bg-white/5 border-white/10 opacity-50'
-                                        : 'opacity-30 border-transparent'
+                                ? 'bg-[#87CEEB]/10 border-[#87CEEB]/50 scale-105 shadow-[0_0_20px_rgba(135,206,235,0.1)]'
+                                : isCompleted
+                                    ? 'bg-white/5 border-white/10 opacity-50'
+                                    : 'opacity-30 border-transparent'
                                 }`}
                         >
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 transition-colors duration-300 ${isActive ? 'bg-[#87CEEB] text-black' : isCompleted ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-500'

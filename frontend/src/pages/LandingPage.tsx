@@ -8,8 +8,7 @@ import {
     MonitorPlay,
     Check,
     Sparkles,
-    Layers,
-    Globe
+    Layers
 } from 'lucide-react'
 
 export default function LandingPage() {
@@ -254,6 +253,6 @@ export default function LandingPage() {
                 </footer>
 
             </main>
-        </div>
+        </div >
     )
 }

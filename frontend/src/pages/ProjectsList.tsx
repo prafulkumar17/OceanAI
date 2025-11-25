@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, FileText, MonitorPlay, Clock, Trash2, Search, ArrowUpRight, Sparkles } from 'lucide-react'
+import { Plus, FileText, MonitorPlay, Clock, Trash2, Search, ArrowUpRight, Sparkles, ArrowRight } from 'lucide-react'
 import { projectApi } from '../services/api'
 import { Project } from '../types/project'
 

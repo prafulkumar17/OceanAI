@@ -26,22 +26,40 @@ class GoogleSlidesService:
         from google.auth.transport.requests import Request
         
         creds = None
-        token_path = os.path.join(os.getcwd(), 'token.json')
         
-        if not os.path.exists(token_path):
-            # Try looking in backend folder if running from root
-            token_path = os.path.join(os.getcwd(), 'backend', 'token.json')
+        # 1. Try Environment Variables (for Render/Cloud)
+        client_id = os.getenv('GOOGLE_CLIENT_ID')
+        client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+        refresh_token = os.getenv('GOOGLE_REFRESH_TOKEN')
+        
+        if client_id and client_secret and refresh_token:
+            creds = Credentials(
+                None,  # No access token initially
+                refresh_token=refresh_token,
+                token_uri="https://oauth2.googleapis.com/token",
+                client_id=client_id,
+                client_secret=client_secret,
+                scopes=SCOPES
+            )
+        
+        # 2. Fallback to Local File (for Development)
+        else:
+            token_path = os.path.join(os.getcwd(), 'token.json')
             
-        if os.path.exists(token_path):
-            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+            if not os.path.exists(token_path):
+                # Try looking in backend folder if running from root
+                token_path = os.path.join(os.getcwd(), 'backend', 'token.json')
+                
+            if os.path.exists(token_path):
+                creds = Credentials.from_authorized_user_file(token_path, SCOPES)
             
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
-            else:
-                raise FileNotFoundError(
-                    "Valid 'token.json' not found. Please run 'python setup_google_auth.py' first."
+            elif not creds: # Only raise if no creds at all (file missing AND env vars missing)
+                 raise FileNotFoundError(
+                    "Valid credentials not found. Set GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN env vars OR run 'python setup_google_auth.py' locally."
                 )
         
         self.creds = creds
